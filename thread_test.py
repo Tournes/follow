@@ -1030,7 +1030,7 @@ class PhoneAutomation(QtCore.QThread):
                             # return True
                         self.__typeStart = 'Follow Error'
                         self.__dalam.remove(self.__link)
-                        self.bypassCaptcha(5)
+                        self.bypassCaptcha(3)
                         self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] Không tìm thấy xpath Follow nào cả báo admin ngay lập tức!!!', self.parent.tableWidget, COLORS.GREEN)
                         time.sleep(3)
                         return True
