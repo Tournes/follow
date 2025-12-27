@@ -118,7 +118,7 @@ class PhoneAutomation(QtCore.QThread):
                     "--disable-backgrounding-occluded-windows",
                     "--mute-audio",
                 ]
-                op.add_argument(f'--force-device-scale-factor=0.1')
+                # op.add_argument(f'--force-device-scale-factor=0.1')
                 for flag in chrome_flags:
                     op.add_argument(flag)
                 # op.add_argument(f'--disable-features=DisableLoadExtensionCommandLineSwitch')
@@ -247,6 +247,7 @@ class PhoneAutomation(QtCore.QThread):
                             self.editCellByColumnName.emit(self.index, 'Status', F'[ {self.__typeStart} ] Mất kết nối internet :<',self.parent.tableWidget, COLORS.RED)
                             try:
                                 self.driver.refresh();self.driver.set_page_load_timeout(30)
+                                time.sleep(random.randint(15,30))
                             except:pass
                             try:
                                 LOGIN_ACCOUNT.remove(self.index)
