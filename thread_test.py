@@ -118,7 +118,7 @@ class PhoneAutomation(QtCore.QThread):
                     "--disable-backgrounding-occluded-windows",
                     "--mute-audio",
                 ]
-                # op.add_argument(f'--force-device-scale-factor=0.1')
+                op.add_argument(f'--force-device-scale-factor=0.1')
                 for flag in chrome_flags:
                     op.add_argument(flag)
                 # op.add_argument(f'--disable-features=DisableLoadExtensionCommandLineSwitch')
@@ -1000,9 +1000,41 @@ class PhoneAutomation(QtCore.QThread):
                             self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
                        
                         # Follow cách 2
-                        xpath_follow = f'//div[./a[@href="/@{self.userjob}"]]//button[@data-e2e="follow-button"]'
-                        if self.clickElement(By.XPATH, xpath_follow, 4, False):
-                            el = self.driver.find_element(By.XPATH, xpath_follow)
+                        # xpath_follow = f'//div[./a[@href="/@{self.userjob}"]]//button[@data-e2e="follow-button"]'
+                        # if self.clickElement(By.XPATH, xpath_follow, 4, False):
+                        #     el = self.driver.find_element(By.XPATH, xpath_follow)
+                        #     # Lấy text và xóa khoảng trắng thừa
+                        #     btn_text = el.text.strip()
+                            
+                        #     print(f"Text của nút là: {btn_text}")
+                            
+                        #     if btn_text == "Follow" or btn_text == "Theo dõi":
+                        #         self.driver.execute_script("""
+                        #         arguments[0].scrollIntoView({
+                        #             behavior: 'smooth',
+                        #             block: 'center'
+                        #         });
+                        #         """, el)
+
+                        #         time.sleep(random.uniform(0.5, 1))
+                        #         self.actionChains.move_to_element(el).pause(0.3).click().perform()
+                        #     else:
+                        #         self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] Tài khoản @{self.userjob} đã được theo dõi từ trước.', self.parent.tableWidget, COLORS.OLIVE)
+                        #         return True
+                                
+                        #     self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] Đã theo dõi @{self.userjob} thành công.', self.parent.tableWidget, COLORS.GREEN)
+                        #     time.sleep(1)
+                        #     return True
+                        # else:
+                        #     self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] Theo dõi @{self.userjob} thất bại!!!', self.parent.tableWidget, COLORS.RED)
+                        #     time.sleep(1)
+                            # return True
+
+                        # Follow cách 3
+                        if self.clickElement(By.XPATH, f'//a[contains(@href,"{self.userjob}")]', 8, False):
+                           
+                            el = self.driver.find_element(By.XPATH, "(//div[text()='Follow']|//button[text()='Follow'])[1]")
+            
                             # Lấy text và xóa khoảng trắng thừa
                             btn_text = el.text.strip()
                             
@@ -1018,17 +1050,13 @@ class PhoneAutomation(QtCore.QThread):
 
                                 time.sleep(random.uniform(0.5, 1))
                                 self.actionChains.move_to_element(el).pause(0.3).click().perform()
+                                self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] Theo dõi @{self.userjob} thành công.', self.parent.tableWidget, COLORS.OLIVE)
+                                return True
                             else:
                                 self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] Tài khoản @{self.userjob} đã được theo dõi từ trước.', self.parent.tableWidget, COLORS.OLIVE)
+                                time.sleep(1)
                                 return True
-                                
-                            self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] Đã theo dõi @{self.userjob} thành công.', self.parent.tableWidget, COLORS.GREEN)
-                            time.sleep(1)
-                            return True
-                        else:
-                            self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] Theo dõi @{self.userjob} thất bại!!!', self.parent.tableWidget, COLORS.RED)
-                            time.sleep(1)
-                            # return True
+             
                         self.__typeStart = 'Follow Error'
                         self.__dalam.remove(self.__link)
                         self.bypassCaptcha(3)
