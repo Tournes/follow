@@ -857,6 +857,8 @@ class PhoneAutomation(QtCore.QThread):
                         if '@' in current:
                             m = re.search(r'/@([^/?]+)', current)
                             self.userjob = m.group(1) if m else None
+                        # self.__link = f'https://www.tiktok.com/search?q={self.userjob}&t=1766756391609' 
+                            self.driver.get(f'https://www.tiktok.com/search?q={self.userjob}&t=1766756391609')
                         load_success = True
                         break
                         
@@ -941,8 +943,7 @@ class PhoneAutomation(QtCore.QThread):
                         if self.clickElement(By.XPATH,'//*[text()="Bạn không có tài khoản?"]|//*[text()="Bạn đã có tài khoản?"]|(//div[normalize-space(text())="Đăng nhập"])[1]',1,False):
                             self.fetchInfo()
                             return False
-                        if self.userjob == '':
-                            self.driver.get(self.__linkprofile)
+          
                             
                         if self.clickElement(By.XPATH, f'//a[contains(@href,"{self.userjob}")]', 8, False):
                         
