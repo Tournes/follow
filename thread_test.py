@@ -944,11 +944,7 @@ class PhoneAutomation(QtCore.QThread):
                             self.fetchInfo()
                             return False
           
-                        xpath_follow = f'''
-                        //p[@data-e2e="search-user-unique-id" and text()="{self.userjob}"]
-                        /ancestor::div[contains(@class,"DivUserInfoContainer")]
-                        //button[@data-e2e="follow-button"]
-                        '''
+                        xpath_follow = f'//a[@data-e2e="search-user-info-container" and .//p[text()="{self.userjob}"]]/ancestor::div[contains(@class, "DivItemContainer")]//button[@data-e2e="follow-button"]'
                         if self.clickElement(By.XPATH, xpath_follow, 1, False):
                             el = self.driver.find_element(By.XPATH, xpath_follow)
 
@@ -987,10 +983,7 @@ class PhoneAutomation(QtCore.QThread):
                         else:
                             if self.clickElement(By.XPATH, '//div[@role="tab" and contains(@aria-controls,"search_account")]', 1, True):
                                 el = None
-                                xpath_user = f'''
-                                //p[@data-e2e="search-user-unique-id" and text()="{self.userjob}"]
-                                /ancestor::a[@data-e2e="search-user-info-container"]
-                                '''
+                                xpath_user = f'//p[@data-e2e="search-user-unique-id" and text()="{self.userjob}"]|/ancestor::a[@data-e2e="search-user-info-container"]'
                                 for i in range(3):  # cuộn tối đa 3 lần
                                     try:
                                         el = WebDriverWait(self.driver, 3).until(
