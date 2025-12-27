@@ -854,10 +854,10 @@ class PhoneAutomation(QtCore.QThread):
                         self.driver.set_page_load_timeout(15)
                         self.driver.get(self.__link)
                         current = self.driver.current_url
+                        print('Link là:',current)
                         if '@' in current:
                             m = re.search(r'/@([^/?]+)', current)
                             self.userjob = m.group(1) if m else None
-                        # self.__link = f'https://www.tiktok.com/search?q={self.userjob}&t=1766756391609' 
                             self.driver.get(f'https://www.tiktok.com/search?q={self.userjob}&t=1766756391609')
                         load_success = True
                         break
@@ -947,19 +947,8 @@ class PhoneAutomation(QtCore.QThread):
                             
                         if self.clickElement(By.XPATH, f'//a[contains(@href,"{self.userjob}")]', 8, False):
                         
-                            # if self.clickElement(By.XPATH, "(.//*[normalize-space()='Follow'])[1]", 5, True):
-                            # body = self.driver.find_element(By.XPATH, "//*[text()='Follow']")
-                            # body.click()
-                            # if self.total % 2 == 0 and self.total !=0:
-                            # if self.clickElement(By.XPATH,'//button[@data-e2e="user-more"]',2,True):
-                            #     time.sleep(random.uniform(0.15, 0.3))
-                            #     if self.clickElement(By.XPATH,'//p[text()="Chặn"]',2,True):
-                            #         time.sleep(random.uniform(0.15, 0.3))
-                            #         if self.clickElement(By.XPATH,'//button[@data-e2e="block-popup-cancel-btn"]',2,True):
-                            #             time.sleep(random.uniform(0.15, 0.3))
-                                    
-                                        # el = self.driver.find_element(By.XPATH, "//div[contains(@class,'DivShareLayoutHeader')]//button[.//text()='Follow']")
-                            el = self.driver.find_element(By.XPATH, "(//div[text()='Follow']|//button[text()='Follow'])[1]")
+
+                            el = self.driver.find_element(By.XPATH, f'//p[@data-e2e="search-user-unique-id" and text()="{self.userjob}"] /ancestor::div[contains(@class,"DivUserInfoContainer")] //button[@data-e2e="follow-button"]')
                             
             
 
