@@ -118,7 +118,7 @@ class PhoneAutomation(QtCore.QThread):
                     "--disable-backgrounding-occluded-windows",
                     "--mute-audio",
                 ]
-                # op.add_argument(f'--force-device-scale-factor=0.1')
+                op.add_argument(f'--force-device-scale-factor=0.1')
                 for flag in chrome_flags:
                     op.add_argument(flag)
                 # op.add_argument(f'--disable-features=DisableLoadExtensionCommandLineSwitch')
