@@ -118,7 +118,7 @@ class PhoneAutomation(QtCore.QThread):
                     "--disable-backgrounding-occluded-windows",
                     "--mute-audio",
                 ]
-                op.add_argument(f'--force-device-scale-factor=0.1')
+                # op.add_argument(f'--force-device-scale-factor=0.1')
                 for flag in chrome_flags:
                     op.add_argument(flag)
                 # op.add_argument(f'--disable-features=DisableLoadExtensionCommandLineSwitch')
@@ -194,7 +194,7 @@ class PhoneAutomation(QtCore.QThread):
         except:pass
 
     def clickElement(self, typeBy: object, source: str, delay: int, click: bool):
-        logging.debug(f"Type: {typeBy}, Source: {source}, Delay: {delay}, Click: {click}")
+        
         try:
             wait = WebDriverWait(self.driver, delay)
             element = wait.until(EC.element_to_be_clickable((typeBy, source)))
@@ -203,8 +203,10 @@ class PhoneAutomation(QtCore.QThread):
                 # actions = ActionChains(self.driver)
                 # actions.move_to_element(element).click().perform()
             return True
-        except TimeoutException:
-            return False
+        except:
+            pass
+        logging.debug(f"Type: {typeBy}, Source: {source} Không tìm thấy Element!!!")
+        return False
 
     def checkInternet(self, type = 'chrome'):
         tele = True
@@ -935,103 +937,65 @@ class PhoneAutomation(QtCore.QThread):
           
                 elif 'follow' in self.__typeJob:
                     try:
+                        print('User Job:',self.userjob)
                         self.bypassCaptcha(5)
                         self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] 🕵️ Đang kiểm tra Status nút theo dõi...', self.parent.tableWidget, COLORS.GREEN)
-                        # Thực hiện follow
-                        # if self.clickElement(By.XPATH, "//button[@data-e2e='follow-button']|//span[text()='Theo dõi']|//span[text()='Follow']|//div[text()='Theo dõi']|//div[text()='Follow']", 5, False):
-                        # Sử dụng find_elements (CÓ CHỮ S) để trả về một list
                         if self.clickElement(By.XPATH,'//*[text()="Bạn không có tài khoản?"]|//*[text()="Bạn đã có tài khoản?"]|(//div[normalize-space(text())="Đăng nhập"])[1]',1,False):
                             self.fetchInfo()
                             return False
           
-                        xpath_follow = f'//a[@data-e2e="search-user-info-container" and .//p[text()="{self.userjob}"]]/ancestor::div[contains(@class, "DivItemContainer")]//button[@data-e2e="follow-button"]'
-                        if self.clickElement(By.XPATH, xpath_follow, 1, False):
-                            el = self.driver.find_element(By.XPATH, xpath_follow)
-
-                            # ===== CHECK ĐÃ FOLLOW CHƯA =====
-                            btn_text = el.text.strip().lower()
-                            aria = (el.get_attribute("aria-label") or "").lower()
-
-                            if any(x in btn_text for x in ["following", "đang theo dõi", "friends"]) \
-                            or "following" in aria:
-                                print(f"👉 @{self.userjob} đã follow từ trước")
-                                self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] 👉 @{self.userjob} đã follow từ trước', self.parent.tableWidget, COLORS.GREEN)
+                        xpath_profile = f'//a[starts-with(@href, "/@{self.userjob}?") or @href="/@{self.userjob}"]'
+                        print('Xpath Profile',xpath_profile)
+                        if self.clickElement(By.XPATH, xpath_profile, 4, True):
+                        
+                            if self.clickElement(By.XPATH, "/html/body/div[1]/div[2]/div[2]/div/div/div[1]/div[1]/div[2]/div[2]/div/button/div/div[2]", 1, False):
+                                print(f'[ {self.__typeStart} ] Người dùng @{self.userjob} đã được theo dõi từ trước.')
+                                self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] Người dùng @{self.userjob} đã được theo dõi từ trước.', self.parent.tableWidget, COLORS.OLIVE)
                                 time.sleep(1)
-                                return True   # hoặc continue nếu trong vòng lặp
-                            
-                            el = self.driver.find_element(By.XPATH, xpath_follow)
-                            
-
-                            # # Scroll mượt tới element
-                            self.driver.execute_script("""
-                            arguments[0].scrollIntoView({
-                                behavior: 'smooth',
-                                block: 'center'
-                            });
-                            """, el)
-
-                            time.sleep(random.uniform(0.5, 1))
-                            self.actionChains.move_to_element(el).pause(0.3).click().perform()                      # Click bằng JS
-                    
+                                return True
+                            if self.clickElement(By.XPATH, "//div[@id='main-content-others_homepage']//p[contains(., 'riêng tư')]", 1, False):
+                                self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] Người dùng @{self.userjob} đây là tài khoản riêng tư.', self.parent.tableWidget, COLORS.BLACK)
+                                time.sleep(1)
+                                return True
+                            if self.clickElement(By.XPATH, "//div[text()='Follow']|//button[text()='Follow']", 5, False):
+                                el = self.driver.find_element(
+                                    By.XPATH, "//div[text()='Follow']|//button[text()='Follow']"
+                                )
+                                self.actionChains.move_to_element(el).pause(0.2).click().perform()
                         
-                            self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] 🎉 Theo dõi thành công {self.__link}', self.parent.tableWidget, COLORS.GREEN)
-                            print(f"Theo dõi thành công {self.__link}")
-                            self.__typePerError = 'Theo dõi thành công.'
-                            self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] 🎉 Thành công! Đã theo dõi tài khoản.', self.parent.tableWidget, COLORS.GREEN)
-                            time.sleep(2)   
-                           
-                        else:
-                            if self.clickElement(By.XPATH, '//div[@role="tab" and contains(@aria-controls,"search_account")]', 1, True):
-                                el = None
-                                xpath_user = f'//p[@data-e2e="search-user-unique-id" and text()="{self.userjob}"]|/ancestor::a[@data-e2e="search-user-info-container"]'
-                                for i in range(3):  # cuộn tối đa 3 lần
-                                    try:
-                                        el = WebDriverWait(self.driver, 3).until(
-                                            EC.element_to_be_clickable((By.XPATH, xpath_user))
-                                        )
-                                        break  # tìm thấy thì thoát vòng lặp
-                                    except:
-                                        # chưa thấy → cuộn xuống
-                                        self.driver.execute_script("""
-                                        window.scrollBy({
-                                            top: window.innerHeight,
-                                            left: 0,
-                                            behavior: 'smooth'
-                                        });
-                                        """)
-                                        time.sleep(1)
-
-                                if el:
-                                    # Scroll mượt tới đúng user
-                                    self.driver.execute_script("""
-                                    arguments[0].scrollIntoView({behavior:'smooth', block:'center'});
-                                    """, el)
-
-                                    # Click mở profile
-                                    self.driver.execute_script("arguments[0].click();", el)
-                                    print(f"✅ Đã mở profile @{self.userjob}")
-                                    if self.clickElement(By.XPATH, "/html/body/div[1]/div[2]/div[2]/div/div/div[1]/div[1]/div[2]/div[2]/div/button/div/div[2]", 1, False):
-                                        return False
-                                    if self.clickElement(By.XPATH, "//div[text()='Follow']|//button[text()='Follow']", 5, False):
-                                        # body = self.driver.find_element(By.XPATH, "//*[text()='Follow']")
-                                        # body.click()
-                                        el = self.driver.find_element(
-                                            By.XPATH, "//div[text()='Follow']|//button[text()='Follow']"
-                                        )
-                                        self.actionChains.move_to_element(el).pause(0.2).click().perform()
-                                        # self.driver.execute_script("arguments[0].click();", el)
-                                        # Danh sách XPATH bao quát tất cả các trường hợp nút Follow/Theo dõi
-                                
-                                        self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] 🎉 Theo dõi thành công {self.__link}', self.parent.tableWidget, COLORS.GREEN)
-                                        print(f"Theo dõi thành công {self.__link}")
-                                        self.__typePerError = 'Theo dõi thành công.'
-                                        self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] 🎉 Thành công! Đã theo dõi tài khoản.', self.parent.tableWidget, COLORS.GREEN)
-                                        time.sleep(1)
-                                        return True
-                                else:
-                                    print(f"❌ Không tìm thấy user @{self.userjob} sau khi cuộn 3 lần")
-
-                        
+                                self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] 🎉 Theo dõi thành công {self.__link}', self.parent.tableWidget, COLORS.GREEN)
+                                print(f"Theo dõi thành công {self.__link}")
+                                self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] 🎉 Thành công! Đã theo dõi tài khoản.', self.parent.tableWidget, COLORS.GREEN)
+                                time.sleep(1)
+                                return True
+                       
+                        if self.clickElement(By.XPATH, "//span[text()='Người dùng']|//div[text()='Người dùng']|//button[text()='Người dùng']", 1, True):
+                            time.sleep(3)
+                            for _ in range(3):
+                                if self.clickElement(By.XPATH, "/html/body/div[1]/div[2]/div[2]/div/div/div[1]/div[1]/div[2]/div[2]/div/button/div/div[2]", 1, False):
+                                    print(f'[ {self.__typeStart} ] Người dùng @{self.userjob} đã được theo dõi từ trước.')
+                                    self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] Người dùng @{self.userjob} đã được theo dõi từ trước.', self.parent.tableWidget, COLORS.OLIVE)
+                                    time.sleep(1)
+                                    return True
+                                if self.clickElement(By.XPATH, "//div[@id='main-content-others_homepage']//p[contains(., 'riêng tư')]", 1, False):
+                                    self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] Người dùng @{self.userjob} đây là tài khoản riêng tư.', self.parent.tableWidget, COLORS.BLACK)
+                                    time.sleep(1)
+                                    return True
+                                if self.clickElement(By.XPATH, xpath_profile, 4, True):
+                                    el = self.driver.find_element(
+                                        By.XPATH, "//div[text()='Follow']|//button[text()='Follow']"
+                                    )
+                                    self.actionChains.move_to_element(el).pause(0.2).click().perform()
+                            
+                                    self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] 🎉 Theo dõi thành công {self.__link}', self.parent.tableWidget, COLORS.GREEN)
+                                    print(f"Theo dõi thành công {self.__link}")
+                                    self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] 🎉 Thành công! Đã theo dõi tài khoản.', self.parent.tableWidget, COLORS.GREEN)
+                                    time.sleep(1)
+                                    return True
+                            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                        self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] Không tìm thấy xpath Follow nào cả báo admin ngay lập tức!!!', self.parent.tableWidget, COLORS.GREEN)
+                        time.sleep(3)
+                        return True
                     except Exception as e:
                         print(f"DEBUG: Thread {self.index} exception in follow job: {e}")
                         logging.error(traceback.print_exc())
