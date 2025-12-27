@@ -993,6 +993,7 @@ class PhoneAutomation(QtCore.QThread):
                                     time.sleep(1)
                                     return True
                             self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                        self.bypassCaptcha(5)
                         self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] Không tìm thấy xpath Follow nào cả báo admin ngay lập tức!!!', self.parent.tableWidget, COLORS.GREEN)
                         time.sleep(3)
                         return True
