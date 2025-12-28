@@ -194,7 +194,6 @@ class PhoneAutomation(QtCore.QThread):
         except:pass
 
     def clickElement(self, typeBy: object, source: str, delay: int, click: bool):
-        logging.debug(f"Type: {typeBy}, Source: {source}, Delay: {delay}, Click: {click}")
         try:
             wait = WebDriverWait(self.driver, delay)
             element = wait.until(EC.element_to_be_clickable((typeBy, source)))
@@ -203,9 +202,11 @@ class PhoneAutomation(QtCore.QThread):
                 # actions = ActionChains(self.driver)
                 # actions.move_to_element(element).click().perform()
             return True
-        except TimeoutException:
-            return False
-
+        except:
+            pass
+        logging.debug(f"Type: {typeBy}, Source: {source}, Delay: {delay}, Click: {click}")
+        return False
+   
     def checkInternet(self, type = 'chrome'):
         tele = True
         try:
