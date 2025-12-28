@@ -700,29 +700,47 @@ class PhoneAutomation(QtCore.QThread):
             logging.error('Có lỗi xảy ra khi giải captcha chọn', exc_info=True)
 
     def public(self):
-        self.editCellByColumnName.emit(
-            self.index, 
-            'Status', 
-            f'🌍 Đang công khai danh sách đã thích cho tài khoản @{self.uid}...', 
-            self.parent.tableWidget, 
-            COLORS.GREEN
-        )
-        user_agent_mb = 'com.ss.android.ugc.trill/995 (Linux; U; Android 7.1.2; en_US; ASUS_Z01QD; Build/N2G48H; Cronet/77.0.3844.0)'
-        url_open_tym = 'https://api16-normal-c-useast1a.tiktokv.com/aweme/v1/user/set/settings/?field=favorite_permission&value=0&os_api=25&device_type=ASUS_Z01QD&ssmix=a&manifest_version_code=995&dpi=240&carrier_region=VN&uoo=0&region=US&uuid=841023267387228&app_skin=white&app_name=trill&version_name=9.9.5&timezone_offset=-21600&ts=1664613812&ab_version=9.9.5&residence=VN&pass-route=1&pass-region=1&is_my_cn=0&current_region=VN&ac2=wifi&app_type=normal&ac=wifi&channel=googleplay&update_version_code=9950&_rticket=1664613812700&device_platform=android&iid=7149451393853081346&build_number=9.9.5&locale=en&op_region=VN&version_code=995&timezone_name=America%2FChicago&openudid=06ca0f001df50f81&sys_region=US&device_id=7149449994248144386&app_language=en&resolution=720*1280&device_brand=Asus&language=en&os_version=7.1.2&aid=1180&mcc_mnc=45204'
-        url_open_tym_us = 'https://api16-normal-useast5.us.tiktokv.com/aweme/v1/user/set/settings/?field=favorite_permission&value=0&os_api=25&device_type=ASUS_Z01QD&ssmix=a&manifest_version_code=995&dpi=240&carrier_region=VN&uoo=0&region=US&uuid=841023267387228&app_skin=white&app_name=trill&version_name=9.9.5&timezone_offset=-21600&ts=1664613812&ab_version=9.9.5&residence=VN&pass-route=1&pass-region=1&is_my_cn=0&current_region=VN&ac2=wifi&app_type=normal&ac=wifi&channel=googleplay&update_version_code=9950&_rticket=1664613812700&device_platform=android&iid=7149451393853081346&build_number=9.9.5&locale=en&op_region=VN&version_code=995&timezone_name=America%2FChicago&openudid=06ca0f001df50f81&sys_region=US&device_id=7149449994248144386&app_language=en&resolution=720*1280&device_brand=Asus&language=en&os_version=7.1.2&aid=1180&mcc_mnc=45204'
+        try:
+            self.editCellByColumnName.emit(
+                self.index, 
+                'Status', 
+                f'🌍 Đang công khai danh sách đã thích cho tài khoản @{self.uid}...', 
+                self.parent.tableWidget, 
+                COLORS.GREEN
+            )
+            cookies_list = self.driver.get_cookies()
+            
+            if not cookies_list:
+                return ""
 
-        headers_tym = {
-            'Cookie': self.cookieChrome,
-            'User-Agent': user_agent_mb,
-            'sdk-version':'1',
-            'x-khronos':'1664613812',
-            'x-ss-req-ticket':'1664613812698',
-            'x-gorgon':'040120b94001dd2be7abff1f0507e32b7a9570ab0d00833543d9',
-        }
-        if 'store-country-code=us' in self.cookieChrome:
-            logging.debug(requests.get(url_open_tym_us, headers=headers_tym).text)
-        else:
-            logging.debug(requests.get(url_open_tym, headers=headers_tym).text)
+            # Chuyển đổi sang dạng chuỗi: name1=value1; name2=value2
+            self.cookieChrome = "; ".join([f"{c['name']}={c['value']}" for c in cookies_list])
+            self.sessionid = "sessionid=" + self.cookieChrome.split("sessionid=")[1].split(";")[0].strip() + ";"
+            # user_agent_mb = 'com.ss.android.ugc.trill/995 (Linux; U; Android 7.1.2; en_US; ASUS_Z01QD; Build/N2G48H; Cronet/77.0.3844.0)'
+            # url_open_tym = 'https://api16-normal-c-useast1a.tiktokv.com/aweme/v1/user/set/settings/?field=favorite_permission&value=0&os_api=25&device_type=ASUS_Z01QD&ssmix=a&manifest_version_code=995&dpi=240&carrier_region=VN&uoo=0&region=US&uuid=841023267387228&app_skin=white&app_name=trill&version_name=9.9.5&timezone_offset=-21600&ts=1664613812&ab_version=9.9.5&residence=VN&pass-route=1&pass-region=1&is_my_cn=0&current_region=VN&ac2=wifi&app_type=normal&ac=wifi&channel=googleplay&update_version_code=9950&_rticket=1664613812700&device_platform=android&iid=7149451393853081346&build_number=9.9.5&locale=en&op_region=VN&version_code=995&timezone_name=America%2FChicago&openudid=06ca0f001df50f81&sys_region=US&device_id=7149449994248144386&app_language=en&resolution=720*1280&device_brand=Asus&language=en&os_version=7.1.2&aid=1180&mcc_mnc=45204'
+            # url_open_tym_us = 'https://api16-normal-useast5.us.tiktokv.com/aweme/v1/user/set/settings/?field=favorite_permission&value=0&os_api=25&device_type=ASUS_Z01QD&ssmix=a&manifest_version_code=995&dpi=240&carrier_region=VN&uoo=0&region=US&uuid=841023267387228&app_skin=white&app_name=trill&version_name=9.9.5&timezone_offset=-21600&ts=1664613812&ab_version=9.9.5&residence=VN&pass-route=1&pass-region=1&is_my_cn=0&current_region=VN&ac2=wifi&app_type=normal&ac=wifi&channel=googleplay&update_version_code=9950&_rticket=1664613812700&device_platform=android&iid=7149451393853081346&build_number=9.9.5&locale=en&op_region=VN&version_code=995&timezone_name=America%2FChicago&openudid=06ca0f001df50f81&sys_region=US&device_id=7149449994248144386&app_language=en&resolution=720*1280&device_brand=Asus&language=en&os_version=7.1.2&aid=1180&mcc_mnc=45204'
+
+            # headers_tym = {
+            #     'Cookie': self.cookieChrome,
+            #     'User-Agent': user_agent_mb,
+            #     'sdk-version':'1',
+            #     'x-khronos':'1664613812',
+            #     'x-ss-req-ticket':'1664613812698',
+            #     'x-gorgon':'040120b94001dd2be7abff1f0507e32b7a9570ab0d00833543d9',
+            # }
+            # if 'store-country-code=us' in self.cookieChrome:
+            #     logging.debug(requests.get(url_open_tym_us, headers=headers_tym).text)
+            # else:
+            #     logging.debug(requests.get(url_open_tym, headers=headers_tym).text)
+        
+            headers = {
+                "Cookie": self.sessionid,
+            }
+            if 'store-country-code=us' in self.sessionid:
+                url_open_tym_us = 'https://api16-normal-useast5.us.tiktokv.com/aweme/v1/user/set/settings/?field=favorite_permission&value=0&os_api=25&version_name=9.9.5&ab_version=9.9.5&ac2=wifi&ac=wifi&channel=googleplay&update_version_code=0&device_platform=android&build_number=9.9.5&resolution=720*1280&os_version=7.1.2&aid=1180'
+                print(requests.get(url_open_tym_us, headers=headers, timeout=10))
+                print(requests.post(r'https://api31-normal-useast1a.tiktokv.com/aweme/v1/user/set/settings/?field=favorite_permission&value=0&os_api=25&device_type=ASUS_Z01QD&ssmix=a&manifest_version_code=995&dpi=240&carrier_region=VN&uoo=0&region=US&uuid=841023267387228&app_skin=white&app_name=trill&version_name=9.9.5&timezone_offset=-21600&ts=1664613812&ab_version=9.9.5&residence=VN&pass-route=1&pass-region=1&is_my_cn=0&current_region=VN&ac2=wifi&app_type=normal&ac=wifi&channel=googleplay&update_version_code=9950&_rticket=1664613812700&device_platform=android&iid=7149451393853081346&build_number=9.9.5&locale=en&op_region=VN&version_code=995&timezone_name=America%2FChicago&openudid=06ca0f001df50f81&sys_region=US&device_id=7149449994248144386&app_language=en&resolution=720*1280&device_brand=Asus&language=en&os_version=7.1.2&aid=1180&mcc_mnc=45204', headers=headers))
+        except:pass
 
     def getPathImages(self):
         filePng = []
