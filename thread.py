@@ -939,7 +939,13 @@ class PhoneAutomation(QtCore.QThread):
                             self.fetchInfo()
                             return False
                         if self.clickElement(By.XPATH, "/html/body/div[1]/div[2]/div[2]/div/div/div[1]/div[1]/div[2]/div[2]/div/button/div/div[2]", 1, False):
-                            return False
+                            self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] Url {self.__link} đã được theo dõi từ trước.', self.parent.tableWidget, COLORS.OLIVE)
+                            time.sleep(1)
+                            return True
+                        if self.clickElement(By.XPATH, "//div[@id='main-content-others_homepage']//p[contains(., 'riêng tư')]", 1, False):
+                            self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] Url {self.__link} đây là tài khoản riêng tư.', self.parent.tableWidget, COLORS.BLACK)
+                            time.sleep(1)
+                            return True
                         if self.clickElement(By.XPATH, "//div[text()='Follow']|//button[text()='Follow']", 5, False):
                             # body = self.driver.find_element(By.XPATH, "//*[text()='Follow']")
                             # body.click()
