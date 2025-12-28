@@ -1,3 +1,4 @@
+
 # ////////////////////////////////////////////////////////////////////////////////
 #
 # AUTHOR            : DANG DINH TOAN
@@ -80,7 +81,8 @@ class PhoneAutomation(QtCore.QThread):
         else:
             self.proxyRequests = ''  # Sử dụng None thay vì chuỗi rỗng
 
-        if isinstance(self.total, (int, float))  == False: self.total = 0
+        # if isinstance(self.total, (int, float))  == False: self.total = 0
+        self.total = int(self.total) if str(self.total).isdigit() else 0
 
     def openBrowser(self):
         for _ in  range(3):
@@ -2266,7 +2268,7 @@ class PhoneAutomation(QtCore.QThread):
             f.write(f'{formatted_datetime}: UID: {self.uid.upper()} | Lý do: {self.status} | Luồng {self.index+1}\n')
         time.sleep(1)
         if type == '':
-            self.editCellByColumnName.emit(self.index, 'UID', '',self.parent.tableWidget, COLORS.RED)
+            # self.editCellByColumnName.emit(self.index, 'UID', '',self.parent.tableWidget, COLORS.RED)
             self.editCellByColumnName.emit(self.index, 'Password', '',self.parent.tableWidget, COLORS.RED)
             self.editCellByColumnName.emit(self.index, '2FA', '',self.parent.tableWidget, COLORS.RED)
         
