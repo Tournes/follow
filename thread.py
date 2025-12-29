@@ -245,7 +245,7 @@ class PhoneAutomation(QtCore.QThread):
                         if 'Không thể truy cập trang web này' in pagesrc or 'Không có kết nối Internet. Vui lòng thử lại.' in pagesrc or 'Không có Internet' in pagesrc or 'Ôi, hỏng!' in pagesrc or 'Tải lại' in pagesrc or 'Access Denied' in pagesrc or self.clickElement(By.ID, 'reload-button', 1, False):
                             self.editCellByColumnName.emit(self.index, 'Status', F'[ {self.__typeStart} ] Mất kết nối internet :<',self.parent.tableWidget, COLORS.RED)
                             try:
-                                self.driver.refresh();self.driver.set_page_load_timeout(30)
+                                self.driver.refresh();self.driver.set_page_load_timeout(30);time.sleep(5)
                             except:pass
                             try:
                                 LOGIN_ACCOUNT.remove(self.index)
@@ -2294,9 +2294,12 @@ class PhoneAutomation(QtCore.QThread):
             f.write(f'{formatted_datetime}: UID: {self.uid.upper()} | Lý do: {self.status} | Luồng {self.index+1}\n')
         time.sleep(1)
         if type == '':
-            # self.editCellByColumnName.emit(self.index, 'UID', '',self.parent.tableWidget, COLORS.RED)
+            self.editCellByColumnName.emit(self.index, 'UID'     , '',self.parent.tableWidget, COLORS.RED)
             self.editCellByColumnName.emit(self.index, 'Password', '',self.parent.tableWidget, COLORS.RED)
-            self.editCellByColumnName.emit(self.index, '2FA', '',self.parent.tableWidget, COLORS.RED)
+            self.editCellByColumnName.emit(self.index, '2FA'     , '',self.parent.tableWidget, COLORS.RED)
+            self.editCellByColumnName.emit(self.index, 'Cookie'  , '',self.parent.tableWidget, COLORS.RED)
+            self.editCellByColumnName.emit(self.index, 'Mail'    , '',self.parent.tableWidget, COLORS.RED)
+            self.editCellByColumnName.emit(self.index, 'Passmail', '',self.parent.tableWidget, COLORS.RED)
         
         self.__typeStart = 'BrowserClear'
 
