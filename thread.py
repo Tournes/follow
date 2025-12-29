@@ -103,20 +103,22 @@ class PhoneAutomation(QtCore.QThread):
                 op = webdriver.ChromeOptions()
                 # Danh sách các flags cấu hình
                 chrome_flags = [
-                    "--disable-gpu",
-                    "--disable-software-rasterizer",
-                    "--no-sandbox",
-                    "--disable-dev-shm-usage",
                     '--lang=vi-VN',
-                    "--disable-blink-features=AutomationControlled",
-                    "--ignore-certificate-errors",
-                    "--no-default-browser-check",
-                    f"--proxy-server={self.proxy}",
-                    "--proxy-bypass-list=*.google.com;*.facebook.com;localhost;127.0.0.1",
-                    "--disable-background-timer-throttling",
-                    "--disable-renderer-backgrounding",
-                    "--disable-backgrounding-occluded-windows",
+                    "--no-sandbox",
                     "--mute-audio",
+                    "--disable-gpu",
+                    "--disable-logging", 
+                    "--disable-notifications",
+                    "--disable-dev-shm-usage",
+                    "--no-default-browser-check",
+                    "--ignore-certificate-errors",
+                    f"--proxy-server={self.proxy}",
+                    "--disable-software-rasterizer",
+                    "--disable-renderer-backgrounding",
+                    "--disable-background-timer-throttling",
+                    "--disable-backgrounding-occluded-windows",
+                    "--disable-blink-features=AutomationControlled",
+                    "--proxy-bypass-list=*.google.com;*.facebook.com;localhost;127.0.0.1",
                 ]
                 op.add_argument(f'--force-device-scale-factor=0.1')
                 for flag in chrome_flags:
@@ -2053,8 +2055,9 @@ class PhoneAutomation(QtCore.QThread):
         self.check_add_roi =0
 
         self.__updateValue()
-        # self.editCellByColumnName.emit(self.index, 'ToTal', '',self.parent.tableWidget, COLORS.GREEN)
-        self.editCellByColumnName.emit(self.index, 'Rate', '',self.parent.tableWidget, COLORS.GREEN)
+        self.editCellByColumnName.emit(self.index, 'ToTal'   , '',self.parent.tableWidget, COLORS.GREEN)
+        self.editCellByColumnName.emit(self.index, 'Passmail', '',self.parent.tableWidget, COLORS.GREEN)
+        self.editCellByColumnName.emit(self.index, 'Rate'    , '',self.parent.tableWidget, COLORS.GREEN)
         self.editCellByColumnName.emit(self.index, 'Job Info', '',self.parent.tableWidget, COLORS.GREEN)
 
         if self.uid == '':
