@@ -1069,6 +1069,7 @@ class PhoneAutomation(QtCore.QThread):
                         time.sleep(5)
                         self.addCookie()
                         self.fetchInfo()
+                        self.__typeStart = 'TTC1'
                         # self.initJobBrowser()
                         return
                     elif 'Bạn cần thêm nick vào hệ thống trước khi đặt' in getXu['mess']:
