@@ -85,46 +85,48 @@ class PhoneAutomation(QtCore.QThread):
         self.total = int(self.total) if str(self.total).isdigit() else 0
 
     def openBrowser(self):
-        for _ in  range(3):
+        import undetected_chromedriver as uc # Đảm bảo đã cài: pip install undetected-chromedriver
+        for _ in range(3):
             try:
                 global EXTENSION_ID
                 self.__updateValue()
                 self.editCellByColumnName.emit(self.index, 'Status', f"🔄 Đang mở trình duyệt... Quá trình có thể mất vài giây!", self.parent.tableWidget, COLORS.GREEN)
 
-                # Lấy vị trí cửa sổ Chrome (tọa độ và kích thước)
+                # Lấy vị trí cửa sổ Chrome
                 try:
                     self.pos_window = get_next_win_pos()
                     self.indexChrome, self.xChrome, self.yChrome, self.wChrome, self.hChrome = self.pos_window
                 except:
-                    # Nếu không có vị trí trống, đặt mặc định
                     self.indexChrome, self.xChrome, self.yChrome, self.wChrome, self.hChrome = 0, 0, 0, 700, 1000
 
-                # Cấu hình Chrome Options
-                op = webdriver.ChromeOptions()
-                # Danh sách các flags cấu hình
+                # Cấu hình Chrome Options bằng uc.ChromeOptions
+                op = uc.ChromeOptions() 
+                
                 chrome_flags = [
-                    "--disable-gpu",
-                    "--disable-software-rasterizer",
-                    "--no-sandbox",
-                    "--disable-dev-shm-usage",
                     '--lang=vi-VN',
-                    "--disable-blink-features=AutomationControlled",
-                    "--ignore-certificate-errors",
-                    "--no-default-browser-check",
-                    f"--proxy-server={self.proxy}",
-                    "--proxy-bypass-list=*.google.com;*.facebook.com;localhost;127.0.0.1",
-                    "--disable-background-timer-throttling",
-                    "--disable-renderer-backgrounding",
-                    "--disable-backgrounding-occluded-windows",
+                    "--no-sandbox",
                     "--mute-audio",
+                    "--disable-gpu",
+                    "--disable-logging", 
+                    "--disable-notifications",
+                    "--disable-dev-shm-usage",
+                    "--no-default-browser-check",
+                    "--ignore-certificate-errors",
+                    f"--proxy-server={self.proxy}",
+                    "--disable-software-rasterizer",
+                    "--disable-renderer-backgrounding",
+                    "--disable-background-timer-throttling",
+                    "--disable-backgrounding-occluded-windows",
+                    "--disable-blink-features=AutomationControlled",
+                    "--proxy-bypass-list=*.google.com;*.facebook.com;localhost;127.0.0.1",
                 ]
+                
                 op.add_argument(f'--force-device-scale-factor=0.1')
                 for flag in chrome_flags:
                     op.add_argument(flag)
-                # op.add_argument(f'--disable-features=DisableLoadExtensionCommandLineSwitch')
+
                 self.editCellByColumnName.emit(self.index, 'Status', f"🔄 Đang mở trình duyệt | Proxy: {self.proxy}... Quá trình có thể mất vài giây!", self.parent.tableWidget, COLORS.GREEN)
-                # op.add_argument(f'--proxy-server={self.proxy}')
-                # op.add_argument("--disable-webrtc")
+                
                 logging.debug(self.proxy)
                 op.page_load_strategy = "eager"         
                 op.add_experimental_option("prefs", {
@@ -145,28 +147,28 @@ class PhoneAutomation(QtCore.QThread):
                             op.add_argument(f'--load-extension={",".join(extensions)}')
                 except Exception:
                     self.status = 'Bật Extension lên đi!!!!'
-                # - - - - - - - - - - - - - - - - - - - - -
 
-                # Khởi động trình duyệt
-                op.binary_location = BINARY_LOCATION
-                service = Service(PATHDRIVER+f'\\{BROWSER_TYPE}\\chromedriver.exe')
-                self.driver = webdriver.Chrome(service=service ,  options=op )
-                # self.driver.set_window_position(-3000, 0, self.wChrome, self.hChrome)
+                # Khởi động trình duyệt với undetected_chromedriver
+                # UC tự quản lý driver nên không cần gán đường dẫn trực tiếp vào Service như webdriver thường
+                self.driver = uc.Chrome(
+                    options=op,
+                    browser_executable_path=BINARY_LOCATION,
+                    driver_executable_path=os.path.join(PATHDRIVER, BROWSER_TYPE, "chromedriver.exe"),
+                    headless=False # Hoặc True nếu muốn ẩn
+                )
+
                 try:
                     self.handle_chrome = get_handle_from_pid(get_chrome_pid_by_window_title(BROWSER_TYPE))
-                    print(self.handle_chrome)
                     if self.handle_chrome: embedApi.embed_tab(self.handle_chrome, new=self.index)
-
                 except Exception as e:
                     traceback.print_exc()
-                # self.driver.set_window_rect(self.xChrome, self.yChrome, self.wChrome, self.hChrome)
+
                 self.saved_handles = self.driver.window_handles.copy()
-                # Cấu hình ActionChains
                 self.actionChains = ActionChains(self.driver)
                 self.editCellByColumnName.emit(self.index, 'Status', f"✅ Trình duyệt đã khởi động thành công!", self.parent.tableWidget, COLORS.GREEN)
+                
                 if len(self.proxy.split(':')) >= 3:
-                # if EXTENSION_ID == '':
-                    self.driver.get('chrome://inspect/#extensions');time.sleep(3)
+                    self.driver.get('chrome://inspect/#extensions'); time.sleep(3)
                     for ext in self.driver.find_elements(By.CLASS_NAME, "row"):
                         if "Simple Proxy Switcher" in ext.text:
                             EXTENSION_ID = ext.find_element(By.CLASS_NAME, "url").text.split("//")[1].split("/")[0]
@@ -176,25 +178,24 @@ class PhoneAutomation(QtCore.QThread):
                     debugger_url = self.driver.capabilities['goog:chromeOptions']['debuggerAddress']
                     logging.debug(F'Debugger Address: {debugger_url}')
 
-                
-        
                 return True
+                
             except Exception as e:
-                try:threading.Thread(target=self.driver.quit, args=()).start()
-                except:pass
+                try: threading.Thread(target=self.driver.quit, args=()).start()
+                except: pass
 
                 kill_profile_processes(self.profile_path)
                 self.status = f'Open Browser Error [ {e} ]'
                 self.editCellByColumnName.emit(self.index, 'Status', f"❌ Lỗi khởi động trình duyệt: {e}", self.parent.tableWidget, COLORS.RED)
                 logging.error('Error', exc_info=True)
                 time.sleep(random.randint(10,15))
+                
         if self.pos_window in USED_POS: USED_POS.remove(self.pos_window)
         try:
             if self.handle_chrome: embedApi.unembed_tab(self.handle_chrome)
-        except:pass
+        except: pass
 
     def clickElement(self, typeBy: object, source: str, delay: int, click: bool):
-        
         try:
             wait = WebDriverWait(self.driver, delay)
             element = wait.until(EC.element_to_be_clickable((typeBy, source)))
@@ -205,9 +206,9 @@ class PhoneAutomation(QtCore.QThread):
             return True
         except:
             pass
-        logging.debug(f"Type: {typeBy}, Source: {source} Không tìm thấy Element!!!")
+        logging.debug(f"Type: {typeBy}, Source: {source}, Delay: {delay}, Click: {click}")
         return False
-
+   
     def checkInternet(self, type = 'chrome'):
         tele = True
         try:
@@ -246,8 +247,7 @@ class PhoneAutomation(QtCore.QThread):
                         if 'Không thể truy cập trang web này' in pagesrc or 'Không có kết nối Internet. Vui lòng thử lại.' in pagesrc or 'Không có Internet' in pagesrc or 'Ôi, hỏng!' in pagesrc or 'Tải lại' in pagesrc or 'Access Denied' in pagesrc or self.clickElement(By.ID, 'reload-button', 1, False):
                             self.editCellByColumnName.emit(self.index, 'Status', F'[ {self.__typeStart} ] Mất kết nối internet :<',self.parent.tableWidget, COLORS.RED)
                             try:
-                                self.driver.refresh();self.driver.set_page_load_timeout(30)
-                                time.sleep(random.randint(15,30))
+                                self.driver.refresh();self.driver.set_page_load_timeout(30);time.sleep(5)
                             except:pass
                             try:
                                 LOGIN_ACCOUNT.remove(self.index)
@@ -702,29 +702,47 @@ class PhoneAutomation(QtCore.QThread):
             logging.error('Có lỗi xảy ra khi giải captcha chọn', exc_info=True)
 
     def public(self):
-        self.editCellByColumnName.emit(
-            self.index, 
-            'Status', 
-            f'🌍 Đang công khai danh sách đã thích cho tài khoản @{self.uid}...', 
-            self.parent.tableWidget, 
-            COLORS.GREEN
-        )
-        user_agent_mb = 'com.ss.android.ugc.trill/995 (Linux; U; Android 7.1.2; en_US; ASUS_Z01QD; Build/N2G48H; Cronet/77.0.3844.0)'
-        url_open_tym = 'https://api16-normal-c-useast1a.tiktokv.com/aweme/v1/user/set/settings/?field=favorite_permission&value=0&os_api=25&device_type=ASUS_Z01QD&ssmix=a&manifest_version_code=995&dpi=240&carrier_region=VN&uoo=0&region=US&uuid=841023267387228&app_skin=white&app_name=trill&version_name=9.9.5&timezone_offset=-21600&ts=1664613812&ab_version=9.9.5&residence=VN&pass-route=1&pass-region=1&is_my_cn=0&current_region=VN&ac2=wifi&app_type=normal&ac=wifi&channel=googleplay&update_version_code=9950&_rticket=1664613812700&device_platform=android&iid=7149451393853081346&build_number=9.9.5&locale=en&op_region=VN&version_code=995&timezone_name=America%2FChicago&openudid=06ca0f001df50f81&sys_region=US&device_id=7149449994248144386&app_language=en&resolution=720*1280&device_brand=Asus&language=en&os_version=7.1.2&aid=1180&mcc_mnc=45204'
-        url_open_tym_us = 'https://api16-normal-useast5.us.tiktokv.com/aweme/v1/user/set/settings/?field=favorite_permission&value=0&os_api=25&device_type=ASUS_Z01QD&ssmix=a&manifest_version_code=995&dpi=240&carrier_region=VN&uoo=0&region=US&uuid=841023267387228&app_skin=white&app_name=trill&version_name=9.9.5&timezone_offset=-21600&ts=1664613812&ab_version=9.9.5&residence=VN&pass-route=1&pass-region=1&is_my_cn=0&current_region=VN&ac2=wifi&app_type=normal&ac=wifi&channel=googleplay&update_version_code=9950&_rticket=1664613812700&device_platform=android&iid=7149451393853081346&build_number=9.9.5&locale=en&op_region=VN&version_code=995&timezone_name=America%2FChicago&openudid=06ca0f001df50f81&sys_region=US&device_id=7149449994248144386&app_language=en&resolution=720*1280&device_brand=Asus&language=en&os_version=7.1.2&aid=1180&mcc_mnc=45204'
+        try:
+            self.editCellByColumnName.emit(
+                self.index, 
+                'Status', 
+                f'🌍 Đang công khai danh sách đã thích cho tài khoản @{self.uid}...', 
+                self.parent.tableWidget, 
+                COLORS.GREEN
+            )
+            cookies_list = self.driver.get_cookies()
+            
+            if not cookies_list:
+                return ""
 
-        headers_tym = {
-            'Cookie': self.cookieChrome,
-            'User-Agent': user_agent_mb,
-            'sdk-version':'1',
-            'x-khronos':'1664613812',
-            'x-ss-req-ticket':'1664613812698',
-            'x-gorgon':'040120b94001dd2be7abff1f0507e32b7a9570ab0d00833543d9',
-        }
-        if 'store-country-code=us' in self.cookieChrome:
-            logging.debug(requests.get(url_open_tym_us, headers=headers_tym).text)
-        else:
-            logging.debug(requests.get(url_open_tym, headers=headers_tym).text)
+            # Chuyển đổi sang dạng chuỗi: name1=value1; name2=value2
+            self.cookieChrome = "; ".join([f"{c['name']}={c['value']}" for c in cookies_list])
+            self.sessionid = "sessionid=" + self.cookieChrome.split("sessionid=")[1].split(";")[0].strip() + ";"
+            # user_agent_mb = 'com.ss.android.ugc.trill/995 (Linux; U; Android 7.1.2; en_US; ASUS_Z01QD; Build/N2G48H; Cronet/77.0.3844.0)'
+            # url_open_tym = 'https://api16-normal-c-useast1a.tiktokv.com/aweme/v1/user/set/settings/?field=favorite_permission&value=0&os_api=25&device_type=ASUS_Z01QD&ssmix=a&manifest_version_code=995&dpi=240&carrier_region=VN&uoo=0&region=US&uuid=841023267387228&app_skin=white&app_name=trill&version_name=9.9.5&timezone_offset=-21600&ts=1664613812&ab_version=9.9.5&residence=VN&pass-route=1&pass-region=1&is_my_cn=0&current_region=VN&ac2=wifi&app_type=normal&ac=wifi&channel=googleplay&update_version_code=9950&_rticket=1664613812700&device_platform=android&iid=7149451393853081346&build_number=9.9.5&locale=en&op_region=VN&version_code=995&timezone_name=America%2FChicago&openudid=06ca0f001df50f81&sys_region=US&device_id=7149449994248144386&app_language=en&resolution=720*1280&device_brand=Asus&language=en&os_version=7.1.2&aid=1180&mcc_mnc=45204'
+            # url_open_tym_us = 'https://api16-normal-useast5.us.tiktokv.com/aweme/v1/user/set/settings/?field=favorite_permission&value=0&os_api=25&device_type=ASUS_Z01QD&ssmix=a&manifest_version_code=995&dpi=240&carrier_region=VN&uoo=0&region=US&uuid=841023267387228&app_skin=white&app_name=trill&version_name=9.9.5&timezone_offset=-21600&ts=1664613812&ab_version=9.9.5&residence=VN&pass-route=1&pass-region=1&is_my_cn=0&current_region=VN&ac2=wifi&app_type=normal&ac=wifi&channel=googleplay&update_version_code=9950&_rticket=1664613812700&device_platform=android&iid=7149451393853081346&build_number=9.9.5&locale=en&op_region=VN&version_code=995&timezone_name=America%2FChicago&openudid=06ca0f001df50f81&sys_region=US&device_id=7149449994248144386&app_language=en&resolution=720*1280&device_brand=Asus&language=en&os_version=7.1.2&aid=1180&mcc_mnc=45204'
+
+            # headers_tym = {
+            #     'Cookie': self.cookieChrome,
+            #     'User-Agent': user_agent_mb,
+            #     'sdk-version':'1',
+            #     'x-khronos':'1664613812',
+            #     'x-ss-req-ticket':'1664613812698',
+            #     'x-gorgon':'040120b94001dd2be7abff1f0507e32b7a9570ab0d00833543d9',
+            # }
+            # if 'store-country-code=us' in self.cookieChrome:
+            #     logging.debug(requests.get(url_open_tym_us, headers=headers_tym).text)
+            # else:
+            #     logging.debug(requests.get(url_open_tym, headers=headers_tym).text)
+            try:
+                headers = {"Cookie": self.sessionid,}
+                url_open_tym_us = 'https://api16-normal-useast5.us.tiktokv.com/aweme/v1/user/set/settings/?field=favorite_permission&value=0&os_api=25&version_name=9.9.5&ab_version=9.9.5&ac2=wifi&ac=wifi&channel=googleplay&update_version_code=0&device_platform=android&build_number=9.9.5&resolution=720*1280&os_version=7.1.2&aid=1180'
+                print(requests.get(url_open_tym_us, headers=headers, timeout=10))
+            except:pass
+            try:
+                print(requests.post(r'https://api31-normal-useast1a.tiktokv.com/aweme/v1/user/set/settings/?field=favorite_permission&value=0&os_api=25&device_type=ASUS_Z01QD&ssmix=a&manifest_version_code=995&dpi=240&carrier_region=VN&uoo=0&region=US&uuid=841023267387228&app_skin=white&app_name=trill&version_name=9.9.5&timezone_offset=-21600&ts=1664613812&ab_version=9.9.5&residence=VN&pass-route=1&pass-region=1&is_my_cn=0&current_region=VN&ac2=wifi&app_type=normal&ac=wifi&channel=googleplay&update_version_code=9950&_rticket=1664613812700&device_platform=android&iid=7149451393853081346&build_number=9.9.5&locale=en&op_region=VN&version_code=995&timezone_name=America%2FChicago&openudid=06ca0f001df50f81&sys_region=US&device_id=7149449994248144386&app_language=en&resolution=720*1280&device_brand=Asus&language=en&os_version=7.1.2&aid=1180&mcc_mnc=45204', headers=headers))
+            except:pass
+        except:pass
 
     def getPathImages(self):
         filePng = []
@@ -856,12 +874,6 @@ class PhoneAutomation(QtCore.QThread):
                     try:
                         self.driver.set_page_load_timeout(15)
                         self.driver.get(self.__link)
-                        current = self.driver.current_url
-                        print('Link là:',current)
-                        if '@' in current:
-                            m = re.search(r'/@([^/?]+)', current)
-                            self.userjob = m.group(1) if m else None
-                            self.driver.get(f'https://www.tiktok.com/search?q={self.userjob}&t=1766756391609')
                         load_success = True
                         break
                         
@@ -937,132 +949,42 @@ class PhoneAutomation(QtCore.QThread):
                         return True
           
                 elif 'follow' in self.__typeJob:
-                    self.__typeStart = 'FOLLOW'
                     try:
-                        print('User Job:',self.userjob)
                         self.bypassCaptcha(5)
                         self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] 🕵️ Đang kiểm tra Status nút theo dõi...', self.parent.tableWidget, COLORS.GREEN)
+                        # Thực hiện follow
+                        # if self.clickElement(By.XPATH, "//button[@data-e2e='follow-button']|//span[text()='Theo dõi']|//span[text()='Follow']|//div[text()='Theo dõi']|//div[text()='Follow']", 5, False):
+                        # Sử dụng find_elements (CÓ CHỮ S) để trả về một list
                         if self.clickElement(By.XPATH,'//*[text()="Bạn không có tài khoản?"]|//*[text()="Bạn đã có tài khoản?"]|(//div[normalize-space(text())="Đăng nhập"])[1]',1,False):
                             self.fetchInfo()
                             return False
+                        if self.clickElement(By.XPATH, "/html/body/div[1]/div[2]/div[2]/div/div/div[1]/div[1]/div[2]/div[2]/div/button/div/div[2]", 1, False):
+                            self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] Url {self.__link} đã được theo dõi từ trước.', self.parent.tableWidget, COLORS.OLIVE)
+                            time.sleep(1)
+                            return True
+                        if self.clickElement(By.XPATH, "//div[@id='main-content-others_homepage']//p[contains(., 'riêng tư')]", 1, False):
+                            self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] Url {self.__link} đây là tài khoản riêng tư.', self.parent.tableWidget, COLORS.BLACK)
+                            time.sleep(1)
+                            return True
+                        if self.clickElement(By.XPATH, "//div[text()='Follow']|//button[text()='Follow']", 5, False):
+                            # body = self.driver.find_element(By.XPATH, "//*[text()='Follow']")
+                            # body.click()
+                            el = self.driver.find_element(
+                                By.XPATH, "//div[text()='Follow']|//button[text()='Follow']"
+                            )
+                            self.actionChains.move_to_element(el).pause(0.2).click().perform()
+                            # self.driver.execute_script("arguments[0].click();", el)
+                            # Danh sách XPATH bao quát tất cả các trường hợp nút Follow/Theo dõi
                     
-                        # Follow cách 1
-                        # xpath_profile = f'//a[starts-with(@href, "/@{self.userjob}?") or @href="/@{self.userjob}"]'
-                        # print('Xpath Profile',xpath_profile)
-                        # if self.clickElement(By.XPATH, xpath_profile, 4, True):
-                        
-                        #     if self.clickElement(By.XPATH, "/html/body/div[1]/div[2]/div[2]/div/div/div[1]/div[1]/div[2]/div[2]/div/button/div/div[2]", 1, False):
-                        #         print(f'[ {self.__typeStart} ] Người dùng @{self.userjob} đã được theo dõi từ trước.')
-                        #         self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] Người dùng @{self.userjob} đã được theo dõi từ trước.', self.parent.tableWidget, COLORS.OLIVE)
-                        #         time.sleep(1)
-                        #         return True
-                        #     if self.clickElement(By.XPATH, "//div[@id='main-content-others_homepage']//p[contains(., 'riêng tư')]", 1, False):
-                        #         self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] Người dùng @{self.userjob} đây là tài khoản riêng tư.', self.parent.tableWidget, COLORS.BLACK)
-                        #         time.sleep(1)
-                        #         return True
-                        #     if self.clickElement(By.XPATH, "//div[text()='Follow']|//button[text()='Follow']", 5, False):
-                        #         el = self.driver.find_element(
-                        #             By.XPATH, "//div[text()='Follow']|//button[text()='Follow']"
-                        #         )
-                        #         self.actionChains.move_to_element(el).pause(0.2).click().perform()
-                        
-                        #         self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] 🎉 Theo dõi thành công {self.__link}', self.parent.tableWidget, COLORS.GREEN)
-                        #         print(f"Theo dõi thành công {self.__link}")
-                        #         self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] 🎉 Thành công! Đã theo dõi tài khoản.', self.parent.tableWidget, COLORS.GREEN)
-                        #         time.sleep(1)
-                        #         return True
-                       
-                        # if self.clickElement(By.XPATH, "//span[text()='Người dùng']|//div[text()='Người dùng']|//button[text()='Người dùng']", 1, True):
-                            time.sleep(3)
-                            for _ in range(3):
-                                if self.clickElement(By.XPATH, "/html/body/div[1]/div[2]/div[2]/div/div/div[1]/div[1]/div[2]/div[2]/div/button/div/div[2]", 1, False):
-                                    print(f'[ {self.__typeStart} ] Người dùng @{self.userjob} đã được theo dõi từ trước.')
-                                    self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] Người dùng @{self.userjob} đã được theo dõi từ trước.', self.parent.tableWidget, COLORS.OLIVE)
-                                    time.sleep(1)
-                                    return True
-                              
-                                if self.clickElement(By.XPATH, "//div[@id='main-content-others_homepage']//p[contains(., 'riêng tư')]", 1, False):
-                                    self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] Người dùng @{self.userjob} đây là tài khoản riêng tư.', self.parent.tableWidget, COLORS.BLACK)
-                                    time.sleep(1)
-                                    return True
-                          
-                                if self.clickElement(By.XPATH, xpath_profile, 4, True):
-                                    el = self.driver.find_element(
-                                        By.XPATH, "//div[text()='Follow']|//button[text()='Follow']"
-                                    )
-                                    self.actionChains.move_to_element(el).pause(0.2).click().perform()
-                            
-                                    self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] 🎉 Theo dõi thành công {self.__link}', self.parent.tableWidget, COLORS.GREEN)
-                                    print(f"Theo dõi thành công {self.__link}")
-                                    self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] 🎉 Thành công! Đã theo dõi tài khoản.', self.parent.tableWidget, COLORS.GREEN)
-                                    time.sleep(1)
-                                    return True
-                            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-                       
-                        # Follow cách 2
-                        # xpath_follow = f'//div[./a[@href="/@{self.userjob}"]]//button[@data-e2e="follow-button"]'
-                        # if self.clickElement(By.XPATH, xpath_follow, 4, False):
-                        #     el = self.driver.find_element(By.XPATH, xpath_follow)
-                        #     # Lấy text và xóa khoảng trắng thừa
-                        #     btn_text = el.text.strip()
-                            
-                        #     print(f"Text của nút là: {btn_text}")
-                            
-                        #     if btn_text == "Follow" or btn_text == "Theo dõi":
-                        #         self.driver.execute_script("""
-                        #         arguments[0].scrollIntoView({
-                        #             behavior: 'smooth',
-                        #             block: 'center'
-                        #         });
-                        #         """, el)
-
-                        #         time.sleep(random.uniform(0.5, 1))
-                        #         self.actionChains.move_to_element(el).pause(0.3).click().perform()
-                        #     else:
-                        #         self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] Tài khoản @{self.userjob} đã được theo dõi từ trước.', self.parent.tableWidget, COLORS.OLIVE)
-                        #         return True
-                                
-                        #     self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] Đã theo dõi @{self.userjob} thành công.', self.parent.tableWidget, COLORS.GREEN)
-                        #     time.sleep(1)
-                        #     return True
-                        # else:
-                        #     self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] Theo dõi @{self.userjob} thất bại!!!', self.parent.tableWidget, COLORS.RED)
-                        #     time.sleep(1)
-                            # return True
-
-                        # Follow cách 3
-                        if self.clickElement(By.XPATH, f'//a[contains(@href,"{self.userjob}")]', 8, False):
+                            self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] 🎉 Theo dõi thành công {self.__link}', self.parent.tableWidget, COLORS.GREEN)
+                            print(f"Theo dõi thành công {self.__link}")
+                            self.__typePerError = 'Theo dõi thành công.'
+                            self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] 🎉 Thành công! Đã theo dõi tài khoản.', self.parent.tableWidget, COLORS.GREEN)
+                            time.sleep(1)
+                            return True
                            
-                            el = self.driver.find_element(By.XPATH, "(//div[text()='Follow']|//button[text()='Follow'])[1]")
-            
-                            # Lấy text và xóa khoảng trắng thừa
-                            btn_text = el.text.strip()
-                            
-                            print(f"Text của nút là: {btn_text}")
-                            
-                            if btn_text == "Follow" or btn_text == "Theo dõi":
-                                self.driver.execute_script("""
-                                arguments[0].scrollIntoView({
-                                    behavior: 'smooth',
-                                    block: 'center'
-                                });
-                                """, el)
-
-                                time.sleep(random.uniform(0.5, 1))
-                                self.actionChains.move_to_element(el).pause(0.3).click().perform()
-                                self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] Theo dõi @{self.userjob} thành công.', self.parent.tableWidget, COLORS.OLIVE)
-                                return True
-                            else:
-                                self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] Tài khoản @{self.userjob} đã được theo dõi từ trước.', self.parent.tableWidget, COLORS.OLIVE)
-                                time.sleep(1)
-                                return True
-             
-                        self.__typeStart = 'Follow Error'
-                        self.__dalam.remove(self.__link)
-                        self.bypassCaptcha(3)
-                        self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] Không tìm thấy xpath Follow nào cả báo admin ngay lập tức!!!', self.parent.tableWidget, COLORS.GREEN)
-                        time.sleep(3)
-                        return True
+                        
+                        
                     except Exception as e:
                         print(f"DEBUG: Thread {self.index} exception in follow job: {e}")
                         logging.error(traceback.print_exc())
@@ -1149,6 +1071,7 @@ class PhoneAutomation(QtCore.QThread):
                         time.sleep(5)
                         self.addCookie()
                         self.fetchInfo()
+                        self.__typeStart = 'TTC1'
                         # self.initJobBrowser()
                         return
                     elif 'Bạn cần thêm nick vào hệ thống trước khi đặt' in getXu['mess']:
@@ -1228,25 +1151,20 @@ class PhoneAutomation(QtCore.QThread):
                     self.cache_count = len([x for x in self.id_storage_ttc.split(',') if x])
                     self.editCellByColumnName.emit(self.index, 'Status', f'Cache: {self.cache_count}-[ {self.__typeStart} ] 🚀 Bắt đầu nhiệm vụ loại: {self.__typeJob.upper()} ({index}/{self.total_jobs}) | Còn lại {self.remaining_jobs} nhiệm vụ...', self.parent.tableWidget, COLORS.GREEN)
                     self.__job_id, self.__link = job['idpost'], job['link']
-                    self.userjob = self.__link
-      
-                    
-                    # self.__link = f'https://www.tiktok.com/share/user/{self.idaccount}' 
-                    self.__link = f'https://www.tiktok.com/search?q={self.userjob}&t=1766756391609' 
-                    # if '@' not in self.__link: 
-                    #     self.__link = self.url_tiktok+'@'+self.__link
-                    #     self.link = f'https://m.tiktok.com/v/{self.__job_id}.html'
-                    # else:
+                    if '@' not in self.__link: 
+                        self.__link = self.url_tiktok+'@'+self.__link
+                        self.link = f'https://m.tiktok.com/v/{self.__job_id}.html'
+                    else:
 
-                    #     # self.__link1 = self.__link + '/' + self.__link
-                    #     # self.__link2 = self.__link + '/' + self.__link + '/' + self.__job_id
-                    #     # self.__link3 = 'https://www.tiktok.com/@' + self.__link + '/' + self.__link
-                    #     self.__link4 = 'https://www.tiktok.com/@' + self.__link + '/' + self.__link + '/' + self.__job_id
-                    #     # all_links    = [self.__link1, self.__link2, self.__link3, self.__link4]
-                    #     # self.__link  = random.choice(all_links)
-                    #     self._linkTop= self.link = f'https://m.tiktok.com/v/{self.__job_id}.html'
-                    #     # self.__link = self.__link4
-                    #     self.__link = 'https://www.tiktok.com/@' + self.__link
+                        # self.__link1 = self.__link + '/' + self.__link
+                        # self.__link2 = self.__link + '/' + self.__link + '/' + self.__job_id
+                        # self.__link3 = 'https://www.tiktok.com/@' + self.__link + '/' + self.__link
+                        self.__link4 = 'https://www.tiktok.com/@' + self.__link + '/' + self.__link + '/' + self.__job_id
+                        # all_links    = [self.__link1, self.__link2, self.__link3, self.__link4]
+                        # self.__link  = random.choice(all_links)
+                        self._linkTop= self.link = f'https://m.tiktok.com/v/{self.__job_id}.html'
+                        # self.__link = self.__link4
+                        self.__link = 'https://www.tiktok.com/@' + self.__link
 
                     
                     if self.__link in self.__dalam:
@@ -1756,10 +1674,9 @@ class PhoneAutomation(QtCore.QThread):
                 
                 self.editCellByColumnName.emit(self.index, 'ToTal', str(self.total),self.parent.tableWidget, COLORS.GREEN)
                 self.editStatus.emit('jobs', '', 1)
-                
                 result = self.performAction()
                 if result is True or result is False:
-                    
+                    self.total += 1
                     for _ in range(5):
                         getXu = self.__apitiktop.guiDuyet(self.__job_id, 'check')
                         logging.debug(getXu)
@@ -1776,7 +1693,6 @@ class PhoneAutomation(QtCore.QThread):
                             self.editCellByColumnName.emit(self.index, 'Job Info', str(self.dict_xuthem), self.parent.tableWidget, COLORS.GREEN)
                             self.editCellByColumnName.emit(self.index, 'Rate', f'1/1 TOP', self.parent.tableWidget, COLORS.GREEN)
                             self.editCellByColumnName.emit(self.index, 'Status', "✅ Hoàn thành nhiệm vụ! Bạn đã nhận được 0.25 xu.", self.parent.tableWidget, COLORS.GREEN)
-                            self.total += 1
                             break
                         
                         elif check['status'] == 'error':
@@ -2139,8 +2055,9 @@ class PhoneAutomation(QtCore.QThread):
         self.check_add_roi =0
 
         self.__updateValue()
-        # self.editCellByColumnName.emit(self.index, 'ToTal', '',self.parent.tableWidget, COLORS.GREEN)
-        self.editCellByColumnName.emit(self.index, 'Rate', '',self.parent.tableWidget, COLORS.GREEN)
+        self.editCellByColumnName.emit(self.index, 'ToTal'   , '',self.parent.tableWidget, COLORS.GREEN)
+        self.editCellByColumnName.emit(self.index, 'Passmail', '',self.parent.tableWidget, COLORS.GREEN)
+        self.editCellByColumnName.emit(self.index, 'Rate'    , '',self.parent.tableWidget, COLORS.GREEN)
         self.editCellByColumnName.emit(self.index, 'Job Info', '',self.parent.tableWidget, COLORS.GREEN)
 
         if self.uid == '':
@@ -2380,9 +2297,12 @@ class PhoneAutomation(QtCore.QThread):
             f.write(f'{formatted_datetime}: UID: {self.uid.upper()} | Lý do: {self.status} | Luồng {self.index+1}\n')
         time.sleep(1)
         if type == '':
-            self.editCellByColumnName.emit(self.index, 'UID', '',self.parent.tableWidget, COLORS.RED)
+            self.editCellByColumnName.emit(self.index, 'UID'     , '',self.parent.tableWidget, COLORS.RED)
             self.editCellByColumnName.emit(self.index, 'Password', '',self.parent.tableWidget, COLORS.RED)
-            self.editCellByColumnName.emit(self.index, '2FA', '',self.parent.tableWidget, COLORS.RED)
+            self.editCellByColumnName.emit(self.index, '2FA'     , '',self.parent.tableWidget, COLORS.RED)
+            self.editCellByColumnName.emit(self.index, 'Cookie'  , '',self.parent.tableWidget, COLORS.RED)
+            self.editCellByColumnName.emit(self.index, 'Mail'    , '',self.parent.tableWidget, COLORS.RED)
+            self.editCellByColumnName.emit(self.index, 'Passmail', '',self.parent.tableWidget, COLORS.RED)
         
         self.__typeStart = 'BrowserClear'
 
