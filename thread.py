@@ -200,9 +200,9 @@ class PhoneAutomation(QtCore.QThread):
             wait = WebDriverWait(self.driver, delay)
             element = wait.until(EC.element_to_be_clickable((typeBy, source)))
             if click:
-                element.click()
+                # element.click()
                 # actions = ActionChains(self.driver)
-                # actions.move_to_element(element).click().perform()
+                self.actionChains.move_to_element(element).click().perform()
             return True
         except:
             pass
@@ -986,8 +986,7 @@ class PhoneAutomation(QtCore.QThread):
                         #     )
                         #     self.actionChains.move_to_element(el).pause(0.2).click().perform()
 
-                        if self.clickElement(By.XPATH, "(//div[text()='Follow']|//button[text()='Follow'])[1]", 5, False):
-                            self.human_visual_action(By.XPATH, "(//div[text()='Follow']|//button[text()='Follow'])[1]", True)
+                        if self.clickElement(By.XPATH, "(//div[text()='Follow']|//button[text()='Follow'])[1]", 5, True):
                     
                             self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] 🎉 Theo dõi thành công {self.__link}', self.parent.tableWidget, COLORS.GREEN)
                             print(f"Theo dõi thành công {self.__link}")
