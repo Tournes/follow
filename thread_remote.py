@@ -36,6 +36,7 @@ class PhoneAutomation(QtCore.QThread):
     def __init__(self, parent, index, totalThread):
         super().__init__()
         self.parent, self.index, self.totalThread = parent, index, totalThread
+        self.port = 9222 + self.index
         self.pos_window = False; self.handle_chrome = False
         self.__pause = []
         self.__typePerError = ''
@@ -103,7 +104,7 @@ class PhoneAutomation(QtCore.QThread):
                 # ===============================
                 # 1. Khởi tạo thông tin
                 # ===============================
-                self.port = 9222 + self.index
+                
                 self.profile_path = os.path.join(PATHBROWSER, 'Profile', f'luong_{self.index + 1}')
 
                 os.makedirs(self.profile_path, exist_ok=True)
@@ -148,7 +149,37 @@ class PhoneAutomation(QtCore.QThread):
                
                 service = Service(PATHDRIVER+f'\\{BROWSER_TYPE}\\chromedriver.exe')
                 self.driver = webdriver.Chrome(service=service, options=options)
+
+                # 6. Script tạo con chuột (JS_MOUSE_TRACKER giữ nguyên)
+                JS_MOUSE_TRACKER = """
+                (function() {
+                    if (window.self !== window.top) return;
+                    const createMouse = () => {
+                        if (document.getElementById('fake-cursor')) return;
+                        const m = document.createElement('div');
+                        m.id = 'fake-cursor';
+                        m.innerHTML = `<svg width="25" height="25" viewBox="0 0 32 32" style="filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.3));">
+                            <path d="M7,2 L7,28 L11,24 L14,30 L18,28 L15,22 L22,22 L7,2 Z" fill="white" stroke="black" stroke-width="2"/>
+                        </svg>`;
+                        m.style = 'position:fixed; z-index:999999; pointer-events:none; top:-50px; left:-50px; width:25px; height:25px;';
+                        document.documentElement.appendChild(m);
+                    };
+                    document.addEventListener('mousemove', (e) => {
+                        createMouse();
+                        const m = document.getElementById('fake-cursor');
+                        m.style.left = e.clientX + 'px';
+                        m.style.top = e.clientY + 'px';
+                    });
+                    if (document.readyState === 'loading') {
+                        document.addEventListener('DOMContentLoaded', createMouse);
+                    } else { createMouse(); }
+                })();
+                """
+                # Trong SeleniumBase, driver.execute_cdp_cmd vẫn hoạt động bình thường
+                self.driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {"source": JS_MOUSE_TRACKER})
+              
                 self.actionChains = ActionChains(self.driver)
+             
                 try:
                     self.handle_chrome = get_handle_from_pid(get_chrome_pid_by_window_title(BROWSER_TYPE))
                     print(self.handle_chrome)
@@ -183,25 +214,125 @@ class PhoneAutomation(QtCore.QThread):
 
         return False
 
- 
     def kill_process_on_port(self):
-        for proc in psutil.process_iter(['pid', 'name']):
-            try:
-                # Kiểm tra các kết nối của tiến trình
-                for conn in proc.connections(kind='inet'):
-                    if conn.laddr.port == self.port:
-                        print(f"--- Phát hiện Port {self.port} bị treo bởi PID {proc.info['pid']}. Đang dọn dẹp... ---")
-                        proc.kill()
-            except (psutil.NoSuchProcess, psutil.AccessDenied):
-                continue
+        try:
+            # Lệnh tìm PID đang chiếm port trên Windows
+            # findstr :PORT tìm dòng chứa port, tokens=5 lấy giá trị PID ở cột cuối
+            cmd = f'for /f "tokens=5" %a in (\'netstat -aon ^| findstr :{self.port}\') do taskkill /F /PID %a /T'
+            
+            # Chạy lệnh ẩn (không hiện cửa sổ CMD đen)
+            subprocess.run(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            
+            # Xóa file SingletonLock của Profile (nguyên nhân gây crash khi port bị treo)
+            lock_file = os.path.join(self.profile_path, "SingletonLock")
+            if os.path.exists(lock_file):
+                os.remove(lock_file)
+                
+        except Exception as e:
+            print(f"Lỗi khi dọn dẹp port {self.port}: {e}")
 
-    def clickElement(self, typeBy: object, source: str, delay: int, click: bool):
-        logging.debug(f"Type: {typeBy}, Source: {source}, Delay: {delay}, Click: {click}")
+    def clickElement(self, typeBy: object, source: str, delay: int, click: bool, mouse = True):
+        # logging.debug(f"Type: {typeBy}, Source: {source}, Delay: {delay}, Click: {click}")
         try:
             wait = WebDriverWait(self.driver, delay)
             element = wait.until(EC.element_to_be_clickable((typeBy, source)))
             if click:
-                element.click()
+                # body = self.driver.find_element(By.TAG_NAME, 'body')
+                if mouse:
+                    try:
+                        # ======================
+                        # helper: lấy vị trí chuột hiện tại
+                        # ======================
+                        def get_cursor_pos():
+                            return self.driver.execute_script("""
+                                var m=document.getElementById('fake-cursor');
+                                if(!m) return {x:0,y:0};
+                                return {
+                                    x: parseInt(m.style.left)||0,
+                                    y: parseInt(m.style.top)||0
+                                };
+                            """)
+
+                        # ======================
+                        # helper: rê chuột từ vị trí cũ → mới
+                        # ======================
+                        def move_cursor(to_x, to_y, steps=15):
+                            pos = get_cursor_pos()
+                            sx, sy = pos['x'], pos['y']
+
+                            for i in range(1, steps + 1):
+                                t = i / steps
+                                x = int(sx + (to_x - sx) * t)
+                                y = int(sy + (to_y - sy) * t)
+
+                                self.driver.execute_script("""
+                                    var m=document.getElementById('fake-cursor');
+                                    if(m){
+                                        m.style.left = arguments[0] + 'px';
+                                        m.style.top  = arguments[1] + 'px';
+                                    }
+                                """, x, y)
+
+                                time.sleep(random.uniform(0.008, 0.015))
+
+                  
+
+                        # ======================
+                        # 2. SCROLL TỚI ELEMENT
+                        # ======================
+                        self.driver.execute_script(
+                            "arguments[0].scrollIntoView({block:'center'});", element
+                        )
+                        time.sleep(random.uniform(0.2, 0.4))
+
+                        # ======================
+                        # 3. LẤY RECT → TÂM
+                        # ======================
+                        r = self.driver.execute_script("""
+                            var r=arguments[0].getBoundingClientRect();
+                            return {x:r.left,y:r.top,w:r.width,h:r.height};
+                        """, element)
+
+                        cx = int(r['x'] + r['w'] / 2) + random.randint(-3, 3)
+                        cy = int(r['y'] + r['h'] / 2) + random.randint(-3, 3)
+
+                        # ======================
+                        # 4. RÊ CHUỘT TỪ VỊ TRÍ CŨ → ELEMENT
+                        # ======================
+                        move_cursor(cx, cy)
+
+                        # ======================
+                        # 5. CLICK CHUẨN
+                        # ======================
+                        self.actionChains.move_to_element(element)
+                        self.actionChains.move_by_offset(
+                            random.randint(-2, 2),
+                            random.randint(-2, 2)
+                        ).click().perform()
+
+                        # ======================
+                        # 6. RÊ CHUỘT RA CHỖ KHÁC
+                        # ======================
+                        win_w = self.driver.execute_script("return window.innerWidth;")
+                        win_h = self.driver.execute_script("return window.innerHeight;")
+
+                        out_x = random.randint(0, win_w)
+                        out_y = random.randint(0, win_h)
+
+                        time.sleep(random.uniform(0.2, 0.4))
+                        move_cursor(out_x, out_y, steps=12)
+                        
+                        # self.actionChains.move_to_element_with_offset(body, 0, 0).click().perform()
+                        return True
+                    except Exception as e:
+                        print("human_visual_action error:", e)
+                        return False
+          
+                else:
+                    # element.click()
+                    self.actionChains.move_to_element(element).click().perform()
+                    
+                    # self.actionChains.move_to_element_with_offset(body, 0, 0).click().perform()
                 # actions = ActionChains(self.driver)
                 # actions.move_to_element(element).click().perform()
             return True
@@ -397,16 +528,16 @@ class PhoneAutomation(QtCore.QThread):
                             # 3. Giải Captcha & Lấy Code
                             self.bypassCaptcha(5)
                             print(f" Đang đợi lấy mã xác thực...")
-                            code = EmailFake().get_code(self.mail)
                             
-                            if code:
-                                time.sleep(random.uniform(2, 4))
-                                xpath_code_input = (
-                                    '//input[@placeholder="Nhập mã gồm 6 chữ số"]'
-                      
-                                )
-                                
-                                if self.clickElement(By.XPATH, xpath_code_input, 15, False):
+                            time.sleep(random.uniform(2, 4))
+                            xpath_code_input = (
+                                '//input[@placeholder="Nhập mã gồm 6 chữ số"]'
+                    
+                            )
+                            
+                            if self.clickElement(By.XPATH, xpath_code_input, 15, False):
+                                code = EmailFake().get_code(self.mail)
+                                if code:
                                     input_field = self.driver.find_element(By.XPATH, xpath_code_input)
                                     self.human_type(input_field, code)
                                     time.sleep(random.uniform(2, 3))
@@ -421,8 +552,23 @@ class PhoneAutomation(QtCore.QThread):
                                     if self.checkCookie():
                                         print(f"Đăng nhập thành công!")
                                         return True
+                                else:
+                                    print(f"✘ Không lấy được mã code từ EmailFake")
                             else:
-                                print(f"✘ Không lấy được mã code từ EmailFake")
+                                pageSource = self.driver.page_source
+                                if 'Tài khoản của bạn đã bị cấm' in pageSource or 'Your account has been suspended' in pageSource or 'Sai tài khoản hoặc mật khẩu' in pageSource or 'Incorrect username or password' in pageSource:
+                                    self.status = 'Tài khoản của bạn bị cấm'
+                                    self.deleteProfile(type='')
+                                    time.sleep(2)
+                                    self.initJobBrowser()
+                                    self.editCellByColumnName.emit(self.index, 'Status', f'❌ [ {self.__typeStart} ] Tài khoản đã bị cấm.', self.parent.tableWidget, COLORS.RED)
+                                    time.sleep(3)
+                                    return False
+                                elif 'Rất tiếc, đã xảy ra lỗi, vui lòng thử lại sau' in self.status or 'Bạn truy cập dịch vụ của chúng tôi quá thường xuyên.' in self.status or 'Lỗi máy chủ' in self.status:
+                                    self.deleteProfile(type='xoa')
+                                    self.editCellByColumnName.emit(self.index, 'Status', f'❌ [ {self.__typeStart} ] Bị giới hạn truy cập tạm thời.', self.parent.tableWidget, COLORS.RED)
+                                    time.sleep(3)
+                                    return False
                 except Exception as e: 
                     error_detail = traceback.print_exc()
                     self.editCellByColumnName.emit(self.index, 'Status', f'❌ [ {self.__typeStart} ] ERROR({error_detail})', self.parent.tableWidget, COLORS.RED)
@@ -809,6 +955,7 @@ class PhoneAutomation(QtCore.QThread):
                 self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] ERROR({error_detail})', self.parent.tableWidget, COLORS.RED)
                 time.sleep(random.randint(5,8))
         return False
+  
     def fetchInfo(self):
         global LOGIN_ACCOUNT
         try:
@@ -845,6 +992,7 @@ class PhoneAutomation(QtCore.QThread):
             return
         except:pass
         return False
+ 
     def Tuongtac(self):
 
         try:
@@ -857,6 +1005,7 @@ class PhoneAutomation(QtCore.QThread):
                 time.sleep(random.uniform(1, 2))
                 
         except: pass
+ 
     def clearCache(self):
         try:
             self.driver.execute_cdp_cmd("Network.clearBrowserCookies", {})
@@ -868,8 +1017,6 @@ class PhoneAutomation(QtCore.QThread):
     
     def performAction(self):
         global LIST_CLICK
-        # main_tab = self.driver.current_window_handle
-        # self.driver.switch_to.new_window('tab')   
         try:
 
             # Thử load URL với retry
@@ -877,12 +1024,9 @@ class PhoneAutomation(QtCore.QThread):
             for attempt in range(2):
                 self.__hide = 0
                 try:
-                    # if self.total  % 8 == 0 and self.total !=0:
-                    #     time.sleep(20)
-                    #     self.clearCache()
-                    self.driver.set_page_load_timeout(30)
+              
                     self.driver.get(self.__link)
-  
+                    self.driver.set_page_load_timeout(30)
                     load_success = True
                     break
                     
@@ -972,91 +1116,42 @@ class PhoneAutomation(QtCore.QThread):
                         time.sleep(1)
                         return True
                 
-                    if self.clickElement(By.XPATH, f"(//a[starts-with(@href, '/@{self.joblam}')])[1]", 8, False):
+                    if self.clickElement(By.XPATH, f"(//a[starts-with(@href, '/@{self.joblam}')])[1]", 8, False, mouse=True):
                         self.editCellByColumnName.emit(self.index, 'Status', f'Tìm thấy người dùng, tiến hành click', self.parent.tableWidget, COLORS.GREEN)
                         if self.clickElement(By.XPATH,"(//a[starts-with(@href,'/@{self.joblam}')])[1]//*[text()='Đã follow']",1,False):
                             self.editCellByColumnName.emit(self.index, 'Status', f'JOB Đã làm tiến hành làm job khác', self.parent.tableWidget, COLORS.GREEN)
                             return False
-                        if self.clickElement(By.XPATH,"(//div[text()='Follow']|//button[text()='Follow'])[1]",5,True):
+                        if self.clickElement(By.XPATH,"(//div[text()='Follow']|//button[text()='Follow'])[1]",5,True, mouse=True):
                             self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] 🎉 Theo dõi thành công {self.__link}', self.parent.tableWidget, COLORS.GREEN)
-                            print(f"Theo dõi thành công {self.__link}")
-                            self.__typePerError = 'Theo dõi thành công.'
                             self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] 🎉 Thành công! Đã theo dõi tài khoản.', self.parent.tableWidget, COLORS.GREEN)
                             time.sleep(2)       
                             return True
                         else:
-                            if self.clickElement(By.XPATH, f"(//a[starts-with(@href, '/@{self.joblam}')])[1]", 1, True):
-                                self.bypassCaptcha(7)
-                                if self.clickElement(By.XPATH,'//button[@data-e2e="user-more"]',2,True):
+                            if self.clickElement(By.XPATH, f"(//a[starts-with(@href, '/@{self.joblam}')])[1]", 1, True, mouse=True):
+                                self.bypassCaptcha(5)
+                                if self.clickElement(By.XPATH,'//button[@data-e2e="user-more"]',2,True, mouse=True):
                                     time.sleep(random.uniform(0.15, 0.3))
-                                    if self.clickElement(By.XPATH,'//p[text()="Chặn"]',2,True):
+                                    if self.clickElement(By.XPATH,'//p[text()="Chặn"]',2,True, mouse=True):
                                         time.sleep(random.uniform(0.15, 0.3))
-                                        if self.clickElement(By.XPATH,'//button[@data-e2e="block-popup-cancel-btn"]',2,True):
+                                        if self.clickElement(By.XPATH,'//button[@data-e2e="block-popup-cancel-btn"]',2,True, mouse=True):
                                             time.sleep(random.uniform(0.15, 0.3))
-                                            if self.clickElement(By.XPATH,"(//div[text()='Follow']|//button[text()='Follow'])[1]",1,True):
+                                            if self.clickElement(By.XPATH,"(//div[text()='Follow']|//button[text()='Follow'])[1]",1,True, mouse=True):
                                                 self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] 🎉 Theo dõi thành công {self.__link}', self.parent.tableWidget, COLORS.GREEN)
-                                                print(f"Theo dõi thành công {self.__link}")
-                                                self.__typePerError = 'Theo dõi thành công.'
                                                 self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] 🎉 Thành công! Đã theo dõi tài khoản.', self.parent.tableWidget, COLORS.GREEN)
                                                 time.sleep(2)
                                                 return True
 
-                    # if self.clickElement(By.XPATH, f"(//a[starts-with(@href, '/@{self.joblam}')])[1]", 8, False):
-                    #     self.editCellByColumnName.emit(self.index, 'Status', f'Tìm thấy người dùng, tiến hành click', self.parent.tableWidget, COLORS.GREEN)
-                    #     if self.clickElement(By.XPATH,"(//a[starts-with(@href,'/@{self.joblam}')])[1]//*[text()='Đã follow']",1,False):
-                    #         self.editCellByColumnName.emit(self.index, 'Status', f'JOB Đã làm tiến hành làm job khác', self.parent.tableWidget, COLORS.GREEN)
-                    #         return False
-                       
-                    #     if self.clickElement(By.XPATH,"(//div[text()='Follow']|//button[text()='Follow'])[1]",5,True):
-                    # #     if self.clickElement(By.XPATH,'//button[@data-e2e="user-more"]',2,True):
-                    # #         time.sleep(random.uniform(0.15, 0.3))
-                    # #         if self.clickElement(By.XPATH,'//p[text()="Chặn"]',2,True):
-                    # #             time.sleep(random.uniform(0.15, 0.3))
-                    # #             if self.clickElement(By.XPATH,'//button[@data-e2e="block-popup-cancel-btn"]',2,True):
-                    # #                 time.sleep(random.uniform(0.15, 0.3))
-                    # #                 if self.clickElement(By.XPATH,"(//div[text()='Follow']|//button[text()='Follow'])[1]",1,True):
-        
-                    #         self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] 🎉 Theo dõi thành công {self.__link}', self.parent.tableWidget, COLORS.GREEN)
-                    #         print(f"Theo dõi thành công {self.__link}")
-                    #         self.__typePerError = 'Theo dõi thành công.'
-                    #         self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] 🎉 Thành công! Đã theo dõi tài khoản.', self.parent.tableWidget, COLORS.GREEN)
-                    #         time.sleep(2)       
-                            
-                    #         # self.driver.switch_to.window(main_tab)
-                    #         # self.driver.close()
-                    #         # self.driver.switch_to.window(self.driver.window_handles[0])
-                    #         return True
-                        # else:
-                        #     if self.clickElement(By.XPATH, f"(//a[starts-with(@href, '/@{self.joblam}')])[1]", 1, True):
-                        #         self.bypassCaptcha(7)
-                        #         if self.clickElement(By.XPATH,'//button[@data-e2e="user-more"]',2,True):
-                        #             time.sleep(random.uniform(0.15, 0.3))
-                        #             if self.clickElement(By.XPATH,'//p[text()="Chặn"]',2,True):
-                        #                 time.sleep(random.uniform(0.15, 0.3))
-                        #                 if self.clickElement(By.XPATH,'//button[@data-e2e="block-popup-cancel-btn"]',2,True):
-                        #                     time.sleep(random.uniform(0.15, 0.3))
-                        #                     if self.clickElement(By.XPATH,"(//div[text()='Follow']|//button[text()='Follow'])[1]",1,True):
-                        #                         self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] 🎉 Theo dõi thành công {self.__link}', self.parent.tableWidget, COLORS.GREEN)
-                        #                         print(f"Theo dõi thành công {self.__link}")
-                        #                         self.__typePerError = 'Theo dõi thành công.'
-                        #                         self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] 🎉 Thành công! Đã theo dõi tài khoản.', self.parent.tableWidget, COLORS.GREEN)
-                        #                         time.sleep(2)
-                        #                         return True
+            
                 except Exception as e:
                     print(f"DEBUG: Thread {self.index} exception in follow job: {e}")
                     logging.error(traceback.print_exc())
                     self.__hide = 1
-                    
-                    # self.driver.switch_to.window(main_tab)
-                    # self.driver.close()
-                    # self.driver.switch_to.window(self.driver.window_handles[0])
                     self.bypassCaptcha(5)
                 return False
                 
         except Exception as e:
             print(f"DEBUG: Thread {self.index} unexpected error: {e}")
             return True
-    
      
     def js_click(self, element):
         """JavaScript click với error handling"""
@@ -1091,11 +1186,10 @@ class PhoneAutomation(QtCore.QThread):
             # except:pass
             
             def nhanTienTTC1():
+                self.checkCookie()
                 getXu = self.__apituongtaccheo.getXu(self.__typeJob, self.id_storage_ttc.rstrip(','))
-                logging.debug(f"{getXu} - {self.id_storage_ttc.rstrip(',')}")
-                # formatted_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                # with open('logs.txt', 'a+', encoding='utf-8') as f:
-                #     f.write(f'{formatted_datetime}: UID: {self.uid.upper()} | JOB_ID: {self.id_storage_ttc} | {getXu["mess"]} | {self.__typePerError} | TTC1\n')
+                print(f"{getXu} - {self.id_storage_ttc.rstrip(',')}")
+             
                 if getXu['status'] == 'success':
                     self.editStatus.emit('xuthem', 'tuongtaccheo', int(getXu['data']['xu_them']))
                     # if int(getXu['data']['xu_them']) <= 0:self.__block += 1
@@ -1112,6 +1206,7 @@ class PhoneAutomation(QtCore.QThread):
                     self.editCellByColumnName.emit(self.index, 'Status', f"Thành công, bạn được cộng {xu} xu", self.parent.tableWidget, COLORS.GREEN)
 
                     self.id_storage_ttc = ''
+                    self.__typeStart = 'TTC1'
                     # self.editCellByColumnName.emit(self.index, 'Status', f"Nghỉ 30s rồi làm tiếp", self.parent.tableWidget, COLORS.GREEN)
                     # time.sleep(30)
                     return True
@@ -1138,6 +1233,16 @@ class PhoneAutomation(QtCore.QThread):
                         self.editCellByColumnName.emit(self.index, 'Rate', f'Nhả rồi', self.parent.tableWidget, COLORS.GREEN)
                         self.fetchInfo()
                         # self.initJobBrowser()
+                        self.__typeStart = 'TTC1'
+                        self.id_storage_ttc = ''
+                        return False
+                    elif 'Nick bị die rồi, hãy kiểm tra lại nick tiktok đi!' in getXu['mess']:
+                        self.deleteProfile()
+                        time.sleep(5)
+                        self.editCellByColumnName.emit(self.index, 'Rate', f'Die', self.parent.tableWidget, COLORS.GREEN)
+                        self.initJobBrowser()
+                        self.__typeStart = 'TTC1'
+                        self.id_storage_ttc = ''
                         return False
                     elif 'Bạn cần thêm nick vào hệ thống trước khi đặt' in getXu['mess']:
                         datnick = self.__apituongtaccheo.datNick(self.uid)
@@ -1240,13 +1345,9 @@ class PhoneAutomation(QtCore.QThread):
                         if len(self.id_storage_ttc.split(',')) > self.settings['DelaySettings']['Cache']:
                             self.configureDelay('GetCoin')
                             nhanTienTTC1()
-                    # else:
-                    #     self.id_storage_ttc += self.__job_id + ','
-                    # if self.total_jobs >= 5:
-                    #     self.configureDelay('wait', delay=5)
+          
 
-                    delay_time = random.randint(7,9)
-                    self.configureDelay(type='NextJob',delay=delay_time )
+                    self.configureDelay(type='NextJob')
                   
                 if len(self.id_storage_ttc.split(',')) > self.settings['DelaySettings']['Cache']:
                     self.configureDelay('GetCoin')
@@ -2059,7 +2160,6 @@ class PhoneAutomation(QtCore.QThread):
                                                 if ',' in self.__typeJob:
                                                     # self.__typeJob = random.choice(self.__typeJob.split(','))
                                                     self.__typeJob = 'follow'
-                                                print('Nhiệm vụ chọn là:',self.__typeJob)
                                                 for func in funcs:
                                                     func()
                                                     
@@ -2247,26 +2347,15 @@ class PhoneAutomation(QtCore.QThread):
                 uid             = response.split('"uid":"')[1].split('","nickName":"')[0]
                 nick_name       = response.split('"nickName":"')[1].split('","signature":""')[0]
                 uniqueId        = response.split('"uniqueId":"')[1].split('","')[0]
+                followingCount        = response.split('"followingCount":"')[1].split('","')[0]
                 # self.infoTikApi = {'live':True,'uid': uid, 'nickName': nick_name, 'uniqueId': uniqueId} 
                 if int(uid) != 0:
                     self.editCellByColumnName.emit(self.index, 'Cookie', str(self.cookieChrome),self.parent.tableWidget, COLORS.ORANGE)
-                # print(self.infoTikApi)
-                import json
-                import re
-
-                stats_text = re.search(
-                    r'"stats"\s*:\s*(\{.*?\})',
-                    response,
-                    re.S
-                ).group(1)
-
-                stats = json.loads(stats_text)
-
-                follow = int(stats["followingCount"])
-                self.editCellByColumnName.emit(self.index, 'Passmail', str(follow),self.parent.tableWidget, COLORS.ORANGE)
+               
+                self.editCellByColumnName.emit(self.index, 'Passmail', str(followingCount),self.parent.tableWidget, COLORS.ORANGE)
                 self.__updateValue()
                 time.sleep(1)
-                self.infoTikApi = {'live':True,'uid': uid, 'nickName': nick_name, 'uniqueId': uniqueId,"Folow:": follow} 
+                self.infoTikApi = {'live':True,'uid': uid, 'nickName': nick_name, 'uniqueId': uniqueId, "followingCount:": followingCount} 
                 print(self.infoTikApi)
                 self.uid = uniqueId 
                 # if int(follow)>300:
@@ -2312,6 +2401,7 @@ class PhoneAutomation(QtCore.QThread):
         self.editCellByColumnName.emit(self.index, 'Status',  f'Không kiểm tra được thông tin tài khoản!!! (UID: {self.uid})', self.parent.tableWidget, COLORS.RED)
         
         return False
+ 
     def addCookieBeforeLoad(self):
         try:
             # self.__updateValue();time.sleep(1)
@@ -2330,6 +2420,7 @@ class PhoneAutomation(QtCore.QThread):
             self.driver.get("https://www.tiktok.com/")
             time.sleep(3)
         except: pass
+   
     def addCookie(self):
         for _ in range(3):
             try:
@@ -2439,23 +2530,6 @@ class PhoneAutomation(QtCore.QThread):
         self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] ✅ Xóa toàn bộ lịch sử Browser hoàn tất.', self.parent.tableWidget, COLORS.GREEN)
         time.sleep(5)
         return True
-
-    def close_browser(self):
-        try:
-            # 1. Đóng kết nối Selenium trước
-            if self.driver:
-                self.driver.quit()
-        except:
-            pass
-
-        try:
-            # 2. Tắt tiến trình Chrome
-            if self.chrome_process:
-                self.chrome_process.terminate() # Hoặc .kill() nếu muốn cưỡng ép
-                self.chrome_process.wait(timeout=5)
-                print("Đã đóng Chrome qua Popen")
-        except Exception as e:
-            print(f"Không thể tắt process: {e}")
 
     def stop(self):
         global USED_POS, LOGIN_ACCOUNT
