@@ -426,6 +426,7 @@ class PhoneAutomation(QtCore.QThread):
                             else:
                                 pageSource = self.driver.page_source
                                 if 'Tài khoản của bạn đã bị cấm' in pageSource or 'Your account has been suspended' in pageSource or 'Sai tài khoản hoặc mật khẩu' in pageSource or 'Incorrect username or password' in pageSource:
+                                    self.status = 'Tài khoản của bạn đã bị cấm'
                                     self.deleteProfile(type='')
                                     time.sleep(2)
                                     self.initJobBrowser()
@@ -900,7 +901,7 @@ class PhoneAutomation(QtCore.QThread):
                 # Remove thread sau khi hoàn thành load URL (thành công hoặc thất bại)
                 if not load_success:
                     return True
-                self.__dalam.append(self.__link)
+                # self.__dalam.append(self.__link)
                         
                 # if self.clickElement(By.XPATH, "//div[contains(@class, 'css-u2vwc1-DivErrorWrapper')]|//*[text()='Đây là tài khoản riêng tư']|//*[text()='Video hiện không khả dụng']|//*[text()='Không thể xem video này tại quốc gia hoặc khu vực của bạn']v|//*[text()='Không thể tìm thấy tài khoản này']", 1, False):
                 if self.clickElement(By.XPATH, "//*[text()='Không thể tìm thấy tài khoản này']", 1, False):
