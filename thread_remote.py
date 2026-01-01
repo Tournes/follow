@@ -111,26 +111,14 @@ class PhoneAutomation(QtCore.QThread):
                 # ===============================
                 # 2. MỞ CHROME THẬT (KHÔNG SELENIUM)
                 # ===============================
-                def build_extension_arg(ext_root):
-                    if not os.path.exists(ext_root):
-                        return None
-
-                    exts = []
-                    for name in os.listdir(ext_root):
-                        path = os.path.join(ext_root, name)
-                        if os.path.isdir(path) and os.path.exists(os.path.join(path, "manifest.json")):
-                            exts.append(path)
-
-                    if not exts:
-                        return None
-
-                    return ",".join(exts)
-                ext_arg = build_extension_arg(PATHEXTS)
+                extension_dir = PATHEXTS
+                if os.path.exists(extension_dir):
+                    extensions = [os.path.join(extension_dir, ext) for ext in os.listdir(extension_dir) if os.path.isdir(os.path.join(extension_dir, ext))]
                 chrome_cmd = [
                     BINARY_LOCATION,
                     f"--remote-debugging-port={self.port}",
                     f"--user-data-dir={self.profile_path}",
-                    f"--load-extension={ext_arg}",
+                    f"--load-extension={','.join(extensions)}",
                     "--no-first-run",
                     "--no-default-browser-check",
                     "--disable-blink-features=AutomationControlled",
@@ -140,7 +128,7 @@ class PhoneAutomation(QtCore.QThread):
                     "--start-maximized",
                     f"--lang=vi-VN",
                     "--window-size=700,900",
-                    # '--force-device-scale-factor=0.1'
+                    '--force-device-scale-factor=0.2'
                 ]
 
                 if self.proxy:
@@ -195,149 +183,7 @@ class PhoneAutomation(QtCore.QThread):
 
         return False
 
-    # def openBrowser(self):
-    #     for _ in  range(3):
-    #         try:
-    #             global EXTENSION_ID
-    #             self.__updateValue()
-    #             self.editCellByColumnName.emit(self.index, 'Status', f"🔄 Đang mở trình duyệt... Quá trình có thể mất vài giây!", self.parent.tableWidget, COLORS.GREEN)
-
-    #             # Lấy vị trí cửa sổ Chrome (tọa độ và kích thước)
-    #             # try:
-    #             #     self.pos_window = get_next_win_pos()
-    #             #     self.indexChrome, self.xChrome, self.yChrome, self.wChrome, self.hChrome = self.pos_window
-    #             # except:
-    #                 # Nếu không có vị trí trống, đặt mặc định
-    #             self.indexChrome, self.xChrome, self.yChrome, self.wChrome, self.hChrome = 0, 0, 0, 600, 800
-
-    #             # Cấu hình Chrome Options
-    #             # op = uc.ChromeOptions()
-    #             op = webdriver.ChromeOptions()
-    #             # Danh sách các flags cấu hình
-    #             chrome_flags = [
-    #                 "--lang=vi-VN",
-    #                 "--disable-blink-features=AutomationControlled",
-    #                 "--disable-dev-shm-usage",
-    #                 "--no-default-browser-check",
-    #                 "--mute-audio",
-    #                 "--disable-notifications",
-    #                 "--disable-infobars",
-    #                 "--disable-background-timer-throttling",
-    #                 "--disable-backgrounding-occluded-windows",
-    #                 "--disable-renderer-backgrounding",
-    #                 "--disable-features=TranslateUI",
-    #                 "--start-maximized",
-    #                 f"--proxy-server={self.proxy}",
-    #             ]
-                
-    #             op.add_argument(f'--force-device-scale-factor=0.1')
-    #             for flag in chrome_flags:
-    #                 op.add_argument(flag)
-    #             op.add_argument(f'--disable-features=DisableLoadExtensionCommandLineSwitch')
-    #             self.editCellByColumnName.emit(self.index, 'Status', f"🔄 Đang mở trình duyệt | Proxy: {self.proxy}... Quá trình có thể mất vài giây!", self.parent.tableWidget, COLORS.GREEN)
-    #             logging.debug(self.proxy)
-    #             op.page_load_strategy = "eager"         
-    #             op.add_experimental_option("prefs", {
-    #                 "credentials_enable_service": False,
-    #                 "profile.password_manager_enabled": False
-    #             })
-            
-    #             # Thiết lập Profile Chrome
-    #             self.profile_path = os.path.join(PATHBROWSER, 'Profile', f'luong_{self.index + 1}')
-    #             op.add_argument(f'--user-data-dir={self.profile_path}')
-                
-    #             # Tải Extensions
-    #             try:
-    #                 extension_dir = PATHEXTS
-    #                 if os.path.exists(extension_dir):
-    #                     extensions = [os.path.join(extension_dir, ext) for ext in os.listdir(extension_dir) if os.path.isdir(os.path.join(extension_dir, ext))]
-    #                     if extensions:
-    #                         op.add_argument(f'--load-extension={",".join(extensions)}')
-    #             except Exception:
-    #                 self.status = 'Bật Extension lên đi!!!!'
-    #             # - - - - - - - - - - - - - - - - - - - - -
-
-    #             # Khởi động trình duyệt
-            
-    #             op.binary_location = BINARY_LOCATION
-    #             service = Service(PATHDRIVER+f'\\{BROWSER_TYPE}\\chromedriver.exe')
-    #             self.driver = webdriver.Chrome(service=service ,  options=op )
-
-             
-    #             # Chống nhận diện WebGL
-    #             self.driver.execute_cdp_cmd(
-    #                 "Page.addScriptToEvaluateOnNewDocument",
-    #                 {
-    #                     "source": """
-    #                     (() => {
-    #                         const getParameter = WebGLRenderingContext.prototype.getParameter;
-    #                         WebGLRenderingContext.prototype.getParameter = function(param) {
-    #                             if (param === 37445) return "Intel Inc.";
-    #                             if (param === 37446) return "Intel Iris OpenGL Engine";
-    #                             return getParameter.call(this, param);
-    #                         };
-    #                     })();
-    #                     """
-    #                 }
-    #             )
-
-
-                
-    #             self.driver.execute_cdp_cmd("WebAuthn.enable", {})
-
-    #             # Thêm Virtual Authenticator
-    #             authenticator_id = self.driver.execute_cdp_cmd("WebAuthn.addVirtualAuthenticator", {
-    #                 "options": {
-    #                     "protocol": "ctap2",             # hoặc "u2f"
-    #                     "transport": "internal",         # giống Transport.INTERNAL trong Java
-    #                     "hasResidentKey": False,
-    #                     "hasUserVerification": True,
-    #                     "isUserVerified": True
-    #                 }
-    #             })
-
-    #             # self.driver.set_window_position(-3000, 0, self.wChrome, self.hChrome)
-    #             try:
-    #                 self.handle_chrome = get_handle_from_pid(get_chrome_pid_by_window_title(BROWSER_TYPE))
-    #                 print(self.handle_chrome)
-    #                 if self.handle_chrome: embedApi.embed_tab(self.handle_chrome, new=self.index)
-
-    #             except Exception as e:
-    #                 traceback.print_exc()
-    #             # self.driver.set_window_rect(self.xChrome, self.yChrome, self.wChrome, self.hChrome)
-    #             # self.saved_handles = self.driver.window_handles.copy()
-    #             # Cấu hình ActionChains
-    #             self.actionChains = ActionChains(self.driver)
-    #             self.editCellByColumnName.emit(self.index, 'Status', f"✅ Trình duyệt đã khởi động thành công!", self.parent.tableWidget, COLORS.GREEN)
-    #             if len(self.proxy.split(':')) >= 3:
-    #             # if EXTENSION_ID == '':
-    #                 self.driver.get('chrome://inspect/#extensions');time.sleep(3)
-    #                 for ext in self.driver.find_elements(By.CLASS_NAME, "row"):
-    #                     if "Simple Proxy Switcher" in ext.text:
-    #                         EXTENSION_ID = ext.find_element(By.CLASS_NAME, "url").text.split("//")[1].split("/")[0]
-    #                         print("Extension ID:", EXTENSION_ID)
-    #                         break
-    #                 self.changeProxy('proxyOn')
-    #                 debugger_url = self.driver.capabilities['goog:chromeOptions']['debuggerAddress']
-    #                 logging.debug(F'Debugger Address: {debugger_url}')
-
-                
-        
-    #             return True
-    #         except Exception as e:
-    #             try:threading.Thread(target=self.driver.quit, args=()).start()
-    #             except:pass
-
-    #             kill_profile_processes(self.profile_path)
-    #             self.status = f'Open Browser Error [ {e} ]'
-    #             self.editCellByColumnName.emit(self.index, 'Status', f"❌ Lỗi khởi động trình duyệt: {e}", self.parent.tableWidget, COLORS.RED)
-    #             logging.error('Error', exc_info=True)
-    #             time.sleep(random.randint(5,9))
-    #     if self.pos_window in USED_POS: USED_POS.remove(self.pos_window)
-    #     try:
-    #         if self.handle_chrome: embedApi.unembed_tab(self.handle_chrome)
-    #     except:pass
-
+ 
     def kill_process_on_port(self):
         for proc in psutil.process_iter(['pid', 'name']):
             try:
@@ -1121,32 +967,61 @@ class PhoneAutomation(QtCore.QThread):
                     # if self.clickElement(By.XPATH,'//*[text()="Bạn không có tài khoản?"]|//*[text()="Bạn đã có tài khoản?"]|(//div[normalize-space(text())="Đăng nhập"])[1]',1,False):
                     #     self.fetchInfo()
                     #     return False
-          
+
                     if self.clickElement(By.XPATH, f"(//a[starts-with(@href, '/@{self.joblam}')])[1]", 8, False):
                         self.editCellByColumnName.emit(self.index, 'Status', f'Tìm thấy người dùng, tiến hành click', self.parent.tableWidget, COLORS.GREEN)
                         if self.clickElement(By.XPATH,"(//a[starts-with(@href,'/@{self.joblam}')])[1]//*[text()='Đã follow']",1,False):
                             self.editCellByColumnName.emit(self.index, 'Status', f'JOB Đã làm tiến hành làm job khác', self.parent.tableWidget, COLORS.GREEN)
                             return False
-                       
                         if self.clickElement(By.XPATH,"(//div[text()='Follow']|//button[text()='Follow'])[1]",5,True):
-                    #     if self.clickElement(By.XPATH,'//button[@data-e2e="user-more"]',2,True):
-                    #         time.sleep(random.uniform(0.15, 0.3))
-                    #         if self.clickElement(By.XPATH,'//p[text()="Chặn"]',2,True):
-                    #             time.sleep(random.uniform(0.15, 0.3))
-                    #             if self.clickElement(By.XPATH,'//button[@data-e2e="block-popup-cancel-btn"]',2,True):
-                    #                 time.sleep(random.uniform(0.15, 0.3))
-                    #                 if self.clickElement(By.XPATH,"(//div[text()='Follow']|//button[text()='Follow'])[1]",1,True):
-        
                             self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] 🎉 Theo dõi thành công {self.__link}', self.parent.tableWidget, COLORS.GREEN)
                             print(f"Theo dõi thành công {self.__link}")
                             self.__typePerError = 'Theo dõi thành công.'
                             self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] 🎉 Thành công! Đã theo dõi tài khoản.', self.parent.tableWidget, COLORS.GREEN)
                             time.sleep(2)       
-                            
-                            # self.driver.switch_to.window(main_tab)
-                            # self.driver.close()
-                            # self.driver.switch_to.window(self.driver.window_handles[0])
                             return True
+                        else:
+                            if self.clickElement(By.XPATH, f"(//a[starts-with(@href, '/@{self.joblam}')])[1]", 1, True):
+                                self.bypassCaptcha(7)
+                                if self.clickElement(By.XPATH,'//button[@data-e2e="user-more"]',2,True):
+                                    time.sleep(random.uniform(0.15, 0.3))
+                                    if self.clickElement(By.XPATH,'//p[text()="Chặn"]',2,True):
+                                        time.sleep(random.uniform(0.15, 0.3))
+                                        if self.clickElement(By.XPATH,'//button[@data-e2e="block-popup-cancel-btn"]',2,True):
+                                            time.sleep(random.uniform(0.15, 0.3))
+                                            if self.clickElement(By.XPATH,"(//div[text()='Follow']|//button[text()='Follow'])[1]",1,True):
+                                                self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] 🎉 Theo dõi thành công {self.__link}', self.parent.tableWidget, COLORS.GREEN)
+                                                print(f"Theo dõi thành công {self.__link}")
+                                                self.__typePerError = 'Theo dõi thành công.'
+                                                self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] 🎉 Thành công! Đã theo dõi tài khoản.', self.parent.tableWidget, COLORS.GREEN)
+                                                time.sleep(2)
+                                                return True
+
+                    # if self.clickElement(By.XPATH, f"(//a[starts-with(@href, '/@{self.joblam}')])[1]", 8, False):
+                    #     self.editCellByColumnName.emit(self.index, 'Status', f'Tìm thấy người dùng, tiến hành click', self.parent.tableWidget, COLORS.GREEN)
+                    #     if self.clickElement(By.XPATH,"(//a[starts-with(@href,'/@{self.joblam}')])[1]//*[text()='Đã follow']",1,False):
+                    #         self.editCellByColumnName.emit(self.index, 'Status', f'JOB Đã làm tiến hành làm job khác', self.parent.tableWidget, COLORS.GREEN)
+                    #         return False
+                       
+                    #     if self.clickElement(By.XPATH,"(//div[text()='Follow']|//button[text()='Follow'])[1]",5,True):
+                    # #     if self.clickElement(By.XPATH,'//button[@data-e2e="user-more"]',2,True):
+                    # #         time.sleep(random.uniform(0.15, 0.3))
+                    # #         if self.clickElement(By.XPATH,'//p[text()="Chặn"]',2,True):
+                    # #             time.sleep(random.uniform(0.15, 0.3))
+                    # #             if self.clickElement(By.XPATH,'//button[@data-e2e="block-popup-cancel-btn"]',2,True):
+                    # #                 time.sleep(random.uniform(0.15, 0.3))
+                    # #                 if self.clickElement(By.XPATH,"(//div[text()='Follow']|//button[text()='Follow'])[1]",1,True):
+        
+                    #         self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] 🎉 Theo dõi thành công {self.__link}', self.parent.tableWidget, COLORS.GREEN)
+                    #         print(f"Theo dõi thành công {self.__link}")
+                    #         self.__typePerError = 'Theo dõi thành công.'
+                    #         self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] 🎉 Thành công! Đã theo dõi tài khoản.', self.parent.tableWidget, COLORS.GREEN)
+                    #         time.sleep(2)       
+                            
+                    #         # self.driver.switch_to.window(main_tab)
+                    #         # self.driver.close()
+                    #         # self.driver.switch_to.window(self.driver.window_handles[0])
+                    #         return True
                         # else:
                         #     if self.clickElement(By.XPATH, f"(//a[starts-with(@href, '/@{self.joblam}')])[1]", 1, True):
                         #         self.bypassCaptcha(7)
@@ -1342,7 +1217,8 @@ class PhoneAutomation(QtCore.QThread):
 
                     
                     # self.__link = f'https://www.tiktok.com/@{self.idaccount}' 
-                    self.__link = f'https://www.tiktok.com/search?q={self.joblam}' 
+                    # self.__link = f'https://www.tiktok.com/search?q={self.joblam}' 
+                    self.__link = f'https://www.tiktok.com/search/user?q={self.joblam}'
                     
 
                     
@@ -1847,7 +1723,8 @@ class PhoneAutomation(QtCore.QThread):
 
                 self.__job_id, self.__link ,self.userjob   = jobs['task_execution_id'], jobs['links'][2],jobs['entity_data']["username"]
                 self.joblam = self.userjob.strip()
-                self.__link = f'https://www.tiktok.com/search?q={self.joblam}' 
+                # self.__link = f'https://www.tiktok.com/search?q={self.joblam}' 
+                self.__link = f'https://www.tiktok.com/search/user?q={self.joblam}'
                 try:
                     skip = open('skip_tiktop.txt','r',encoding='utf-8').read().strip().split('\n')
                 except:
