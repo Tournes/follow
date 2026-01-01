@@ -978,15 +978,16 @@ class PhoneAutomation(QtCore.QThread):
                             self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] Url {self.__link} đây là tài khoản riêng tư.', self.parent.tableWidget, COLORS.BLACK)
                             time.sleep(1)
                             return True
-                        if self.clickElement(By.XPATH, "//div[text()='Follow']|//button[text()='Follow']", 5, False):
-                            # body = self.driver.find_element(By.XPATH, "//*[text()='Follow']")
-                            # body.click()
-                            el = self.driver.find_element(
-                                By.XPATH, "//div[text()='Follow']|//button[text()='Follow']"
-                            )
-                            self.actionChains.move_to_element(el).pause(0.2).click().perform()
-                            # self.driver.execute_script("arguments[0].click();", el)
-                            # Danh sách XPATH bao quát tất cả các trường hợp nút Follow/Theo dõi
+                        # if self.clickElement(By.XPATH, "//div[text()='Follow']|//button[text()='Follow']", 5, False):
+                        #     # body = self.driver.find_element(By.XPATH, "//*[text()='Follow']")
+                        #     # body.click()
+                        #     el = self.driver.find_element(
+                        #         By.XPATH, "//div[text()='Follow']|//button[text()='Follow']"
+                        #     )
+                        #     self.actionChains.move_to_element(el).pause(0.2).click().perform()
+
+                        if self.clickElement(By.XPATH, "(//div[text()='Follow']|//button[text()='Follow'])[1]", 5, False):
+                            self.human_visual_action(By.XPATH, "(//div[text()='Follow']|//button[text()='Follow'])[1]", True)
                     
                             self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] 🎉 Theo dõi thành công {self.__link}', self.parent.tableWidget, COLORS.GREEN)
                             print(f"Theo dõi thành công {self.__link}")
@@ -1163,21 +1164,21 @@ class PhoneAutomation(QtCore.QThread):
                     self.cache_count = len([x for x in self.id_storage_ttc.split(',') if x])
                     self.editCellByColumnName.emit(self.index, 'Status', f'Cache: {self.cache_count}-[ {self.__typeStart} ] 🚀 Bắt đầu nhiệm vụ loại: {self.__typeJob.upper()} ({index}/{self.total_jobs}) | Còn lại {self.remaining_jobs} nhiệm vụ...', self.parent.tableWidget, COLORS.GREEN)
                     self.__job_id, self.__link = job['idpost'], job['link']
-                    if '@' not in self.__link: 
-                        self.__link = self.url_tiktok+'@'+self.__link
-                        self.link = f'https://m.tiktok.com/v/{self.__job_id}.html'
-                    else:
+                    # if '@' not in self.__link: 
+                    #     self.__link = self.url_tiktok+'@'+self.__link
+                    #     self.link = f'https://m.tiktok.com/v/{self.__job_id}.html'
+                    # else:
 
-                        # self.__link1 = self.__link + '/' + self.__link
-                        # self.__link2 = self.__link + '/' + self.__link + '/' + self.__job_id
-                        # self.__link3 = 'https://www.tiktok.com/@' + self.__link + '/' + self.__link
-                        self.__link4 = 'https://www.tiktok.com/@' + self.__link + '/' + self.__link + '/' + self.__job_id
-                        # all_links    = [self.__link1, self.__link2, self.__link3, self.__link4]
-                        # self.__link  = random.choice(all_links)
-                        self._linkTop= self.link = f'https://m.tiktok.com/v/{self.__job_id}.html'
-                        # self.__link = self.__link4
-                        self.__link = 'https://www.tiktok.com/@' + self.__link
-
+                    #     # self.__link1 = self.__link + '/' + self.__link
+                    #     # self.__link2 = self.__link + '/' + self.__link + '/' + self.__job_id
+                    #     # self.__link3 = 'https://www.tiktok.com/@' + self.__link + '/' + self.__link
+                    #     self.__link4 = 'https://www.tiktok.com/@' + self.__link + '/' + self.__link + '/' + self.__job_id
+                    #     # all_links    = [self.__link1, self.__link2, self.__link3, self.__link4]
+                    #     # self.__link  = random.choice(all_links)
+                    #     self._linkTop= self.link = f'https://m.tiktok.com/v/{self.__job_id}.html'
+                    #     # self.__link = self.__link4
+                    #     self.__link = 'https://www.tiktok.com/@' + self.__link
+                    self.__link  = f'https://www.tiktok.com/search?q={self.__link}' 
                     
                     if self.__link in self.__dalam:
                         self.editCellByColumnName.emit(self.index, 'Status', f"Cache: {self.cache_count}-[ {self.__typeStart} ] ⚠️ Nhiệm vụ ID {self.__job_id} đã hoàn thành trước đó! Bỏ qua nhiệm vụ này..." ,self.parent.tableWidget, COLORS.RED);time.sleep(1);continue
