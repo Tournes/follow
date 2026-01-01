@@ -424,7 +424,19 @@ class PhoneAutomation(QtCore.QThread):
                                 else:
                                     print(f"✘ Không lấy được mã code từ EmailFake")
                             else:
-                                return True
+                                pageSource = self.driver.page_source
+                                if 'Tài khoản của bạn đã bị cấm' in pageSource or 'Your account has been suspended' in pageSource or 'Sai tài khoản hoặc mật khẩu' in pageSource or 'Incorrect username or password' in pageSource:
+                                    self.deleteProfile(type='')
+                                    time.sleep(2)
+                                    self.initJobBrowser()
+                                    self.editCellByColumnName.emit(self.index, 'Status', f'❌ [ {self.__typeStart} ] Tài khoản đã bị cấm.', self.parent.tableWidget, COLORS.RED)
+                                    time.sleep(3)
+                                    return False
+                                elif 'Rất tiếc, đã xảy ra lỗi, vui lòng thử lại sau' in self.status or 'Bạn truy cập dịch vụ của chúng tôi quá thường xuyên.' in self.status or 'Lỗi máy chủ' in self.status:
+                                    self.deleteProfile(type='xoa')
+                                    self.editCellByColumnName.emit(self.index, 'Status', f'❌ [ {self.__typeStart} ] Bị giới hạn truy cập tạm thời.', self.parent.tableWidget, COLORS.RED)
+                                    time.sleep(3)
+                                    return False
                             return False
                 except Exception as e: 
                     error_detail = traceback.print_exc()
@@ -2248,7 +2260,7 @@ class PhoneAutomation(QtCore.QThread):
                 time.sleep(1)
                 # BẮT BUỘC: Phải vào trang web trước khi thêm cookie của trang đó
                 if "tiktok.com" not in self.driver.current_url:
-                    self.driver.get("https://www.tiktok.com/login");self.driver.set_page_load_timeout(15)
+                    self.driver.get("https://www.tiktok.com");self.driver.set_page_load_timeout(15)
                     time.sleep(2) # Đợi trang load nhẹ
 
                 cookies = self.sessionid.split(";")
