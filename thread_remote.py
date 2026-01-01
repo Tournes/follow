@@ -959,7 +959,7 @@ class PhoneAutomation(QtCore.QThread):
         
             elif 'follow' in self.__typeJob:
                 try:
-                    self.bypassCaptcha(7)
+                    self.bypassCaptcha(5)
                     self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] 🕵️ Đang kiểm tra Status nút theo dõi...', self.parent.tableWidget, COLORS.GREEN)
                     # Thực hiện follow
                     # if self.clickElement(By.XPATH, "//button[@data-e2e='follow-button']|//span[text()='Theo dõi']|//span[text()='Follow']|//div[text()='Theo dõi']|//div[text()='Follow']", 5, False):
