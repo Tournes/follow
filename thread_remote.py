@@ -967,7 +967,11 @@ class PhoneAutomation(QtCore.QThread):
                     # if self.clickElement(By.XPATH,'//*[text()="Bạn không có tài khoản?"]|//*[text()="Bạn đã có tài khoản?"]|(//div[normalize-space(text())="Đăng nhập"])[1]',1,False):
                     #     self.fetchInfo()
                     #     return False
-
+                    if self.clickElement(By.XPATH, "//div[@id='main-content-others_homepage']//p[contains(., 'riêng tư')]", 1, False):
+                        self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] Url {self.__link} đây là tài khoản riêng tư.', self.parent.tableWidget, COLORS.BLACK)
+                        time.sleep(1)
+                        return True
+                
                     if self.clickElement(By.XPATH, f"(//a[starts-with(@href, '/@{self.joblam}')])[1]", 8, False):
                         self.editCellByColumnName.emit(self.index, 'Status', f'Tìm thấy người dùng, tiến hành click', self.parent.tableWidget, COLORS.GREEN)
                         if self.clickElement(By.XPATH,"(//a[starts-with(@href,'/@{self.joblam}')])[1]//*[text()='Đã follow']",1,False):
