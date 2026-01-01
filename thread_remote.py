@@ -1230,7 +1230,7 @@ class PhoneAutomation(QtCore.QThread):
                         self.deleteProfile(type='xoa')
                         time.sleep(5)
                         self.addCookieBeforeLoad()
-                        self.editCellByColumnName.emit(self.index, 'Rate', f'Nhả rồi', self.parent.tableWidget, COLORS.GREEN)
+                        self.editCellByColumnName.emit(self.index, 'Rate', f'Nhả', self.parent.tableWidget, COLORS.GREEN)
                         self.fetchInfo()
                         # self.initJobBrowser()
                         self.__typeStart = 'TTC1'
