@@ -937,7 +937,7 @@ class PhoneAutomation(QtCore.QThread):
                 self.clickElement(By.XPATH, '//button[text()="Đã hiểu"]|//div[text()="Đã hiểu"]|//span[text()="Đã hiểu"]',1, True)
                 if self.clickElement(By.XPATH, '//button[@data-e2e="edit-profile-entrance"]|//div[text()="Sửa hồ sơ"]|//button[text()="Sửa hồ sơ"]|//span[text()="Sửa hồ sơ"]',15, True):
                     time.sleep(1)
-                    avatar_folder = os.path.join(PATHTOOLS, "avatar")
+                    avatar_folder = os.path.join(PATHDATA, "Images\\avatar")
                     self.pathAvt = self.merge_9_grid_temp(avatar_folder)
                     print(self.pathAvt)
                     self.driver.find_element(By.XPATH, "//input[contains(@class, 'InputUpload')]|//input[@type='file']").send_keys(self.pathAvt);time.sleep(2)
@@ -1041,7 +1041,7 @@ class PhoneAutomation(QtCore.QThread):
             # Remove thread sau khi hoàn thành load URL (thành công hoặc thất bại)
             if not load_success:
                 return True
-            self.__dalam.append(self.__link)
+            # self.__dalam.append(self.__link)
                     
             # if self.clickElement(By.XPATH, "//div[contains(@class, 'css-u2vwc1-DivErrorWrapper')]|//*[text()='Đây là tài khoản riêng tư']|//*[text()='Video hiện không khả dụng']|//*[text()='Không thể xem video này tại quốc gia hoặc khu vực của bạn']v|//*[text()='Không thể tìm thấy tài khoản này']", 1, False):
             if self.clickElement(By.XPATH, "//*[text()='Không thể tìm thấy tài khoản này']", 1, False):
@@ -1107,7 +1107,7 @@ class PhoneAutomation(QtCore.QThread):
                     self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] 🕵️ Đang kiểm tra Status nút theo dõi...', self.parent.tableWidget, COLORS.GREEN)
                     # Thực hiện follow
                     # if self.clickElement(By.XPATH, "//button[@data-e2e='follow-button']|//span[text()='Theo dõi']|//span[text()='Follow']|//div[text()='Theo dõi']|//div[text()='Follow']", 5, False):
-                    # Sử dụng find_elements (CÓ CHỮ S) để trả về một list
+
                     # if self.clickElement(By.XPATH,'//*[text()="Bạn không có tài khoản?"]|//*[text()="Bạn đã có tài khoản?"]|(//div[normalize-space(text())="Đăng nhập"])[1]',1,False):
                     #     self.fetchInfo()
                     #     return False
@@ -2059,6 +2059,9 @@ class PhoneAutomation(QtCore.QThread):
                                     self.datniktiktop = self.__apitiktop.datNick(self.uid)
                                     print('Cấu hình tiktop',self.datniktiktop)
                                     self.editCellByColumnName.emit(self.index, 'Status', str(self.datniktiktop), self.parent.tableWidget, COLORS.GREEN)
+                                    if 'change default avatar' in str(self.datniktiktop):
+                                        self.uploadAvt()
+                                        time.sleep(15)
                                     if self.datniktiktop['uid'] != None:
                                         self.dict_add['tiktop'] = True
                                         break
