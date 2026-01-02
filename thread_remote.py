@@ -1236,6 +1236,7 @@ class PhoneAutomation(QtCore.QThread):
                         self.__typeStart = 'TTC1'
                         self.id_storage_ttc = ''
                         return False
+                    
                     elif 'Nick bị die rồi, hãy kiểm tra lại nick tiktok đi!' in getXu['mess']:
                         self.deleteProfile()
                         time.sleep(5)
@@ -1244,6 +1245,7 @@ class PhoneAutomation(QtCore.QThread):
                         self.__typeStart = 'TTC1'
                         self.id_storage_ttc = ''
                         return False
+                    
                     elif 'Bạn cần thêm nick vào hệ thống trước khi đặt' in getXu['mess']:
                         datnick = self.__apituongtaccheo.datNick(self.uid)
                         if datnick['status'] == 'error':
@@ -1254,7 +1256,7 @@ class PhoneAutomation(QtCore.QThread):
                             time.sleep(1)
                             return True
                     elif 'Bạn đã theo dõi' in getXu['mess']:
-                        self.editCellByColumnName.emit(self.index, 'Rate', f'Bạn đã theo dõi ', self.parent.tableWidget, COLORS.GREEN)
+                        self.editCellByColumnName.emit(self.index, 'Rate', f'FL-R', self.parent.tableWidget, COLORS.GREEN)
                         self.id_storage_ttc = ''
                         return True
                     elif 'Vui lòng làm trên 8 nhiệm vụ mới nhận xu' in getXu['mess']:
@@ -1345,14 +1347,15 @@ class PhoneAutomation(QtCore.QThread):
                         if len(self.id_storage_ttc.split(',')) > self.settings['DelaySettings']['Cache']:
                             self.configureDelay('GetCoin')
                             nhanTienTTC1()
-          
+                            return True
 
                     self.configureDelay(type='NextJob')
                   
                 if len(self.id_storage_ttc.split(',')) > self.settings['DelaySettings']['Cache']:
                     self.configureDelay('GetCoin')
                     nhanTienTTC1()
-                      
+                    return True
+                
                 # try:
                 #     seconds = int(round(time.time() - self.__startTTC1, 1))
                 #     self.editCellByColumnName.emit(self.index, 'Status', f"Cache: {self.cache_count}-[ {self.__typeStart} ] ✅ Hoàn thành toàn bộ {self.total_jobs} nhiệm vụ {self.__typeJob.upper()} trong {seconds} giây! 🚀", self.parent.tableWidget, COLORS.GREEN)
