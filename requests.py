@@ -309,21 +309,21 @@ class PhoneAutomation(QtCore.QThread):
                 self.editCellByColumnName.emit(self.index, 'Status', f"Cache: {self.cache_count}-[ {self.__typeStart} ] 🔄 Đang nhận nhiệm vụ {self.__typeJob.upper()}... Vui lòng chờ!", self.parent.tableWidget, COLORS.GREEN)
                
               
-                for t in range(20):
+                for t in range(10):
                     jobs = self.__apituongtaccheo.getJob(self.__typeJob)
                     logging.debug(jobs)
                     try:
                         if 'idpost' in str(jobs[0]):
                             break
                     except:pass
-                    time.sleep(0.1)
+                    time.sleep(0.4)
                
                 try:
                     if 'idpost' in str(jobs[0]):
                         pass
                 except:
-                    self.editCellByColumnName.emit(self.index, 'Status', f"Cache: {self.cache_count}-[ {self.__typeStart} ] 🔄 Không tìm thấy nhiệm vụ nào cả chờ 5-7s!", self.parent.tableWidget, COLORS.GREEN)
-                    time.sleep(random.randint(5,7))
+                    self.editCellByColumnName.emit(self.index, 'Status', f"Cache: {self.cache_count}-[ {self.__typeStart} ] 🔄 Không tìm thấy nhiệm vụ nào cả chờ 5-10s!", self.parent.tableWidget, COLORS.GREEN)
+                    time.sleep(random.randint(5,10))
                     return
 
                 logging.debug(jobs)
