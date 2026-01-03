@@ -246,7 +246,7 @@ class PhoneAutomation(QtCore.QThread):
                         self.__typeStart = 'TTC1'
                         self.id_storage_ttc = ''
                         
-                        self.dict_add['ttc'] = False
+                        # self.dict_add['ttc'] = False
                         return False
                     
                     elif 'Nick bị die rồi, hãy kiểm tra lại nick tiktok đi!' in getXu['mess']:
