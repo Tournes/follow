@@ -876,7 +876,6 @@ class PhoneAutomation(QtCore.QThread):
                         follow_info     = follow_user(user_id=user_id, sec_uid=secUid, cookie=self.cookieChrome, session=self.ss)
                         if follow_info:
                             self.total += 1
-                            self.id_storage_ttc += self.__job_id + ','
                             self.editCellByColumnName.emit(self.index, 'Status', f"[ {self.__typeStart} ] Theo dõi thành công người dùng @{self.userjob}" ,self.parent.tableWidget, COLORS.GREEN);time.sleep(1)
                             break
                     except Exception as e:
