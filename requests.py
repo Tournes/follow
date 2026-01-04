@@ -333,15 +333,15 @@ class PhoneAutomation(QtCore.QThread):
                     self.cache_count = len([x for x in self.id_storage_ttc.split(',') if x])
                     self.editCellByColumnName.emit(self.index, 'Status', f'Cache: {self.cache_count}-[ {self.__typeStart} ] 🚀 Bắt đầu nhiệm vụ loại: {self.__typeJob.upper()} ({index}/{self.total_jobs}) | Còn lại {self.remaining_jobs} nhiệm vụ...', self.parent.tableWidget, COLORS.GREEN)
                     self.__job_id, self.__link ,self.idaccount= job['idpost'], job['link'], job['uid']
-
-                    
-                 
-
+                                     
                     self.editCellByColumnName.emit(self.index, 'ToTal', str(self.total),self.parent.tableWidget, COLORS.GREEN)
                     self.editStatus.emit('jobs', '', 1)
                     for _ in range(3):
                         try:
                             user_info       = get_user_info(str(self.__link), self.proxy)
+                            if user_info.get('privateAccount'):
+                                self.editCellByColumnName.emit(self.index, 'Status', f"[ {self.__typeStart} ] Người dùng @{self.__link} đang ở chế độ riêng tư" ,self.parent.tableWidget, COLORS.BLACK);time.sleep(1)
+                                break
                             secUid          = user_info['secUid']
                             user_id         = user_info['user_id']
                             follow_info     = follow_user(user_id=user_id, sec_uid=secUid, cookie=self.cookieChrome, session=self.ss)
@@ -845,8 +845,8 @@ class PhoneAutomation(QtCore.QThread):
 
                 self.__job_id, self.__link ,self.userjob   = jobs['task_execution_id'], jobs['links'][2],jobs['entity_data']["username"].strip()
                 self.joblam = self.userjob.strip()
-                # self.__link = f'https://www.tiktok.com/search?q={self.joblam}' 
                 self.__link = f'https://www.tiktok.com/search/user?q={self.joblam}'
+
                 try:
                     skip = open('skip_tiktop.txt','r',encoding='utf-8').read().strip().split('\n')
                 except:
@@ -863,28 +863,30 @@ class PhoneAutomation(QtCore.QThread):
                     try:
                         self.__dalam.append(self.__link)
                         user_info       = get_user_info(str(self.joblam), self.proxy)
+                        if user_info.get('privateAccount'):
+                            self.editCellByColumnName.emit(self.index, 'Status', f"[ {self.__typeStart} ] Người dùng @{self.userjob} đang ở chế độ riêng tư" ,self.parent.tableWidget, COLORS.BLACK);time.sleep(1)
+                            break
                         secUid          = user_info['secUid']
                         user_id         = user_info['user_id']
-                        strData         = ''
-                        follow_info     = follow_user(strData=strData, user_id=user_id, sec_uid=secUid, cookie=self.cookieChrome, proxy=self.proxy)
+                        follow_info     = follow_user(user_id=user_id, sec_uid=secUid, cookie=self.cookieChrome, session=self.ss)
                         if follow_info:
                             self.total += 1
                             self.id_storage_ttc += self.__job_id + ','
                             self.editCellByColumnName.emit(self.index, 'Status', f"[ {self.__typeStart} ] Theo dõi thành công người dùng @{self.userjob}" ,self.parent.tableWidget, COLORS.GREEN);time.sleep(1)
-                            self.fail_follow = 0
                             break
                     except:pass
                 else:
-                    self.editCellByColumnName.emit(self.index, 'Status', f"[ {self.__typeStart} ] Theo dõi thành công người dùng @{self.userjob} thất bại" ,self.parent.tableWidget, COLORS.RED);time.sleep(1)
+                    self.fail_follow +=1
+                    self.editCellByColumnName.emit(self.index, 'Status', f"[ {self.__typeStart} ] Theo dõi người dùng @{self.userjob} thất bại" ,self.parent.tableWidget, COLORS.RED);time.sleep(1)
 
-                
                 self.configureDelay('GetCoin')
                 for _ in range(5):
                     getXu = self.__apitiktop.guiDuyet(self.__job_id, 'check')
-                    logging.debug(getXu)
+                    self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] GETXU: {getXu} Task ID: {self.__job_id} User: {self.joblam}', self.parent.tableWidget, COLORS.GREEN)
                     if getXu['status'] == 'success':
                         break
                     time.sleep(5)
+                    
 
                 for t in range(3):
                     check = self.__apitiktop.status_check_task(getXu['job_id'])
@@ -898,7 +900,7 @@ class PhoneAutomation(QtCore.QThread):
                         break
                     
                     elif check['status'] == 'error':
-                        self.editCellByColumnName.emit(self.index, 'Status', str(check), self.parent.tableWidget, COLORS.GREEN)
+                        self.editCellByColumnName.emit(self.index, 'Status', f'[ {self.__typeStart} ] CHECK: {check} Task ID: {self.__job_id} User: {self.joblam}', self.parent.tableWidget, COLORS.RED)
                     time.sleep(5)
                 self.configureDelay('NextJob')
         except Exception as e: 
@@ -1225,7 +1227,7 @@ class PhoneAutomation(QtCore.QThread):
         self.editCellByColumnName.emit(self.index, 'ToTal', '',self.parent.tableWidget, COLORS.GREEN)
         self.editCellByColumnName.emit(self.index, 'Rate', '',self.parent.tableWidget, COLORS.GREEN)
         self.editCellByColumnName.emit(self.index, 'Job Info', '',self.parent.tableWidget, COLORS.GREEN)
-
+        self.editCellByColumnName.emit(self.index, 'Status', f"Khởi động luồng...", self.parent.tableWidget, COLORS.RED)
         if self.uid == '':
             while True:
                 try:
