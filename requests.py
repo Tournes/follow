@@ -338,11 +338,11 @@ class PhoneAutomation(QtCore.QThread):
                     self.editStatus.emit('jobs', '', 1)
                     for _ in range(3):
                         try:
-                            user_info       = get_user_info(str(self.joblam), self.proxy)
+                            user_info       = get_user_info(str(self.__link), self.proxy)
                             if user_info == None:
                                 self.editCellByColumnName.emit(self.index, 'Status', f"[ {self.__typeStart} ] Không kiểm tra được thông tin @{self.userjob}!!!" ,self.parent.tableWidget, COLORS.OLIVE);time.sleep(1)
                             else:
-                                user_info   = get_user_by_cookie(str(self.joblam), session=self.ss)
+                                user_info   = get_user_by_cookie(str(self.__link), session=self.ss)
 
                             secUid          = user_info['secUid']
                             user_id         = user_info['user_id']
@@ -869,7 +869,7 @@ class PhoneAutomation(QtCore.QThread):
                             self.editCellByColumnName.emit(self.index, 'Status', f"[ {self.__typeStart} ] Không kiểm tra được thông tin @{self.userjob}!!!" ,self.parent.tableWidget, COLORS.OLIVE);time.sleep(1)
                         else:
                             user_info   = get_user_by_cookie(str(self.joblam), session=self.ss)
-                            
+
                         if user_info.get('privateAccount'):
                             self.editCellByColumnName.emit(self.index, 'Status', f"[ {self.__typeStart} ] Người dùng @{self.userjob} đang ở chế độ riêng tư" ,self.parent.tableWidget, COLORS.BLACK);time.sleep(1)
                             break
