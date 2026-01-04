@@ -878,7 +878,11 @@ class PhoneAutomation(QtCore.QThread):
                 else:
                     self.fail_follow +=1
                     self.editCellByColumnName.emit(self.index, 'Status', f"[ {self.__typeStart} ] Theo dõi người dùng @{self.userjob} thất bại" ,self.parent.tableWidget, COLORS.RED);time.sleep(1)
-
+                try:
+                    if user_info.get('privateAccount'):
+                        self.editCellByColumnName.emit(self.index, 'Status', f"[ {self.__typeStart} ] Người dùng @{self.__link} đang ở chế độ riêng tư" ,self.parent.tableWidget, COLORS.BLACK);time.sleep(1)
+                        return 
+                except:pass
                 self.configureDelay('GetCoin')
                 for _ in range(5):
                     getXu = self.__apitiktop.guiDuyet(self.__job_id, 'check')
