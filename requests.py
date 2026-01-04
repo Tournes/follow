@@ -866,7 +866,6 @@ class PhoneAutomation(QtCore.QThread):
                         user_info       = get_user_info(str(self.joblam), self.proxy)
                         if user_info == None:
                             self.editCellByColumnName.emit(self.index, 'Status', f"[ {self.__typeStart} ] Không kiểm tra được thông tin @{self.userjob}!!!" ,self.parent.tableWidget, COLORS.OLIVE);time.sleep(1)
-                        else:
                             user_info   = get_user_by_cookie(str(self.joblam), session=self.ss)
 
                         if user_info.get('privateAccount'):
@@ -880,7 +879,8 @@ class PhoneAutomation(QtCore.QThread):
                             self.id_storage_ttc += self.__job_id + ','
                             self.editCellByColumnName.emit(self.index, 'Status', f"[ {self.__typeStart} ] Theo dõi thành công người dùng @{self.userjob}" ,self.parent.tableWidget, COLORS.GREEN);time.sleep(1)
                             break
-                    except:pass
+                    except Exception as e:
+                        print(e)
                 else:
                     self.fail_follow +=1
                     self.editCellByColumnName.emit(self.index, 'Status', f"[ {self.__typeStart} ] Theo dõi người dùng @{self.userjob} thất bại" ,self.parent.tableWidget, COLORS.RED);time.sleep(1)
