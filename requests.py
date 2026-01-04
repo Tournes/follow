@@ -1235,6 +1235,7 @@ class PhoneAutomation(QtCore.QThread):
         self.check_add_roi =0
 
         self.__updateValue()
+        self.editCellByColumnName.emit(self.index, 'Passmail', '',self.parent.tableWidget, COLORS.GREEN)
         self.editCellByColumnName.emit(self.index, 'ToTal', '',self.parent.tableWidget, COLORS.GREEN)
         self.editCellByColumnName.emit(self.index, 'Rate', '',self.parent.tableWidget, COLORS.GREEN)
         self.editCellByColumnName.emit(self.index, 'Job Info', '',self.parent.tableWidget, COLORS.GREEN)
