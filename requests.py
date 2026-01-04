@@ -348,7 +348,6 @@ class PhoneAutomation(QtCore.QThread):
                             if follow_info:
                                 self.id_storage_ttc += self.__job_id + ','
                                 self.editCellByColumnName.emit(self.index, 'Status', f"Cache: {self.cache_count}-[ {self.__typeStart} ] Theo dõi thành công người dùng @{self.__link}" ,self.parent.tableWidget, COLORS.GREEN);time.sleep(1)
-                                self.fail_follow = 0
                                 break
                         except:pass
                         time.sleep(random.randint(5,10))
@@ -1196,10 +1195,10 @@ class PhoneAutomation(QtCore.QThread):
                                     self.editCellByColumnName.emit(self.index, 'Status', f'Tài khoản TTC bị đăng xuất!!!',self.parent.tableWidget, COLORS.RED)
                                     self.dict_add['ttc'] = False
                                     time.sleep(5)
-                                if self.__apituongtaccheo2.infoAccount()['user'] == '':
-                                    self.editCellByColumnName.emit(self.index, 'Status', f'Tài khoản TTC2 bị đăng xuất!!!',self.parent.tableWidget, COLORS.RED)
-                                    self.dict_add['ttc2'] = False
-                                    time.sleep(5)
+                                # if self.__apituongtaccheo2.infoAccount()['user'] == '':
+                                #     self.editCellByColumnName.emit(self.index, 'Status', f'Tài khoản TTC2 bị đăng xuất!!!',self.parent.tableWidget, COLORS.RED)
+                                #     self.dict_add['ttc2'] = False
+                                #     time.sleep(5)
                             except:pass
                             time.sleep(5)
                
