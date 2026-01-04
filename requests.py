@@ -1238,7 +1238,7 @@ class PhoneAutomation(QtCore.QThread):
         self.editCellByColumnName.emit(self.index, 'ToTal', '',self.parent.tableWidget, COLORS.GREEN)
         self.editCellByColumnName.emit(self.index, 'Rate', '',self.parent.tableWidget, COLORS.GREEN)
         self.editCellByColumnName.emit(self.index, 'Job Info', '',self.parent.tableWidget, COLORS.GREEN)
-        self.editCellByColumnName.emit(self.index, 'Status', f"Khởi động luồng...", self.parent.tableWidget, COLORS.RED)
+        self.editCellByColumnName.emit(self.index, 'Status', f"Khởi động luồng {self.index}...", self.parent.tableWidget, COLORS.GREEN)
         if self.uid == '':
             while True:
                 try:
