@@ -340,7 +340,7 @@ class PhoneAutomation(QtCore.QThread):
                         try:
                             user_info       = get_user_info(str(self.__link), self.proxy)
                             if user_info == None:
-                                self.editCellByColumnName.emit(self.index, 'Status', f"[ {self.__typeStart} ] Không kiểm tra được thông tin @{self.userjob}!!!" ,self.parent.tableWidget, COLORS.OLIVE);time.sleep(1)
+                                self.editCellByColumnName.emit(self.index, 'Status', f"[ {self.__typeStart} ] Không kiểm tra được thông tin @{self.__link}!!!" ,self.parent.tableWidget, COLORS.OLIVE);time.sleep(1)
                             else:
                                 user_info   = get_user_by_cookie(str(self.__link), session=self.ss)
 
